@@ -47,7 +47,7 @@
   - `hex.EncodeToString()`で64文字の16進数文字列に変換
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 3.2* (P) GenerateFingerprint関数のユニットテスト
+- [x] 3.2* (P) GenerateFingerprint関数のユニットテスト
   - 同一入力で一貫したハッシュが生成されることを検証
   - codeフィールドありなしの両方をテスト
   - 空フィールドの処理をテスト
