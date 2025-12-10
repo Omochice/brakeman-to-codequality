@@ -1,0 +1,112 @@
+# GitLab CI Configuration Example for brakeman-to-codequality
+
+stages:
+  - build
+  - test
+  - security
+
+# Build Docker image
+build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  script:
+    - docker build -t brakeman-to-codequality:latest .
+    - docker save brakeman-to-codequality:latest -o brakeman-to-codequality.tar
+  artifacts:
+    paths:
+      - brakeman-to-codequality.tar
+    expire_in: 1 day
+  only:
+    - main
+    - merge_requests
+
+# Example 1: Using Docker image
+brakeman-scan-docker:
+  stage: security
+  image: ruby:3.2
+  dependencies:
+    - build
+  services:
+    - docker:24-dind
+  before_script:
+    - gem install brakeman
+    - docker load -i brakeman-to-codequality.tar
+  script:
+    - brakeman -f json -o brakeman-report.json --no-exit-on-warn --no-exit-on-error || true
+    - docker run --rm -i brakeman-to-codequality:latest < brakeman-report.json > codequality.json
+  artifacts:
+    reports:
+      codequality: codequality.json
+    paths:
+      - brakeman-report.json
+      - codequality.json
+    expire_in: 7 days
+  only:
+    - main
+    - merge_requests
+
+# Example 2: Using Go installation (without Docker)
+brakeman-scan-go:
+  stage: security
+  image: ruby:3.2
+  before_script:
+    - apt-get update && apt-get install -y golang-go
+    - gem install brakeman
+    - go install github.com/Omochice/brakeman-to-codequality@latest
+    - export PATH=$PATH:$(go env GOPATH)/bin
+  script:
+    - brakeman -f json | brakeman-to-codequality > codequality.json
+  artifacts:
+    reports:
+      codequality: codequality.json
+    expire_in: 7 days
+  only:
+    - main
+    - merge_requests
+
+# Example 3: Using pre-built Docker image from registry
+brakeman-scan-registry:
+  stage: security
+  image: ruby:3.2
+  services:
+    - docker:24-dind
+  variables:
+    # Replace with your registry URL
+    CONVERTER_IMAGE: registry.example.com/brakeman-to-codequality:latest
+  before_script:
+    - gem install brakeman
+  script:
+    - brakeman -f json -o brakeman-report.json --no-exit-on-warn --no-exit-on-error || true
+    - docker run --rm -i ${CONVERTER_IMAGE} < brakeman-report.json > codequality.json
+  artifacts:
+    reports:
+      codequality: codequality.json
+    paths:
+      - brakeman-report.json
+      - codequality.json
+    expire_in: 7 days
+  only:
+    - main
+    - merge_requests
+
+# Example 4: Minimal configuration for quick setup
+brakeman-minimal:
+  stage: security
+  image:
+    name: ruby:3.2
+  before_script:
+    - apt-get update && apt-get install -y wget tar
+    - gem install brakeman
+    # Download pre-built binary
+    - wget -O brakeman-to-codequality https://github.com/Omochice/brakeman-to-codequality/releases/latest/download/brakeman-to-codequality-linux-amd64
+    - chmod +x brakeman-to-codequality
+  script:
+    - brakeman -f json | ./brakeman-to-codequality > codequality.json
+  artifacts:
+    reports:
+      codequality: codequality.json
+  only:
+    - main
+    - merge_requests

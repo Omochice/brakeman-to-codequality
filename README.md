@@ -22,6 +22,20 @@ cd brakeman-to-codequality
 go build
 ```
 
+### Docker
+
+Build the Docker image:
+
+```bash
+docker build -t brakeman-to-codequality:latest .
+```
+
+Run using Docker:
+
+```bash
+brakeman -f json | docker run --rm -i brakeman-to-codequality:latest > codequality.json
+```
+
 ## Usage
 
 ### Basic Usage
@@ -41,6 +55,8 @@ cat brakeman-report.json | brakeman-to-codequality > codequality.json
 
 ### GitLab CI Example
 
+Using Go installation:
+
 ```yaml
 brakeman:
   stage: test
@@ -54,6 +70,27 @@ brakeman:
     reports:
       codequality: codequality.json
 ```
+
+Using Docker:
+
+```yaml
+brakeman:
+  stage: security
+  image: ruby:3.2
+  services:
+    - docker:24-dind
+  variables:
+    CONVERTER_IMAGE: your-registry/brakeman-to-codequality:latest
+  before_script:
+    - gem install brakeman
+  script:
+    - brakeman -f json | docker run --rm -i ${CONVERTER_IMAGE} > codequality.json
+  artifacts:
+    reports:
+      codequality: codequality.json
+```
+
+See `.gitlab-ci.yml.example` for more configuration examples.
 
 ## Format Conversion Details
 
