@@ -72,7 +72,7 @@
   - _Requirements: 3.2, 3.4, 3.5, 3.6, 3.7, 3.8, 7.3_
 
 - [ ] 5. 入力処理の実装
-- [ ] 5.1 ParseBrakemanJSON関数の実装
+- [x] 5.1 ParseBrakemanJSON関数の実装
   - `json.NewDecoder(io.Reader)`を使用してストリーミング処理
   - BrakemanReport構造体にデコード
   - warningsフィールドが存在しない場合は空のスライスとして扱う

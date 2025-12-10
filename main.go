@@ -3,7 +3,9 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -104,6 +106,23 @@ func ConvertWarnings(warnings []BrakemanWarning) []CodeQualityViolation {
 	}
 
 	return violations
+}
+
+// ParseBrakemanJSON reads and parses Brakeman JSON from an io.Reader
+func ParseBrakemanJSON(r io.Reader) (*BrakemanReport, error) {
+	var report BrakemanReport
+
+	decoder := json.NewDecoder(r)
+	if err := decoder.Decode(&report); err != nil {
+		return nil, err
+	}
+
+	// If warnings field is nil, initialize as empty slice
+	if report.Warnings == nil {
+		report.Warnings = []BrakemanWarning{}
+	}
+
+	return &report, nil
 }
 
 func main() {
