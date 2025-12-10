@@ -141,6 +141,20 @@ func HandleError(err error) int {
 }
 
 func main() {
-	fmt.Fprintln(os.Stderr, "brakeman-to-codequality: Not yet implemented")
-	os.Exit(1)
+	// Parse Brakeman JSON from standard input
+	report, err := ParseBrakemanJSON(os.Stdin)
+	if err != nil {
+		os.Exit(HandleError(err))
+	}
+
+	// Convert warnings to GitLab Code Quality violations
+	violations := ConvertWarnings(report.Warnings)
+
+	// Write GitLab Code Quality JSON to standard output
+	if err := WriteCodeQualityJSON(violations, os.Stdout); err != nil {
+		os.Exit(HandleError(err))
+	}
+
+	// Success
+	os.Exit(0)
 }

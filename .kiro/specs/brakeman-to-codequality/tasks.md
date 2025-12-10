@@ -116,7 +116,7 @@
   - _Requirements: 7.1, 7.2_
 
 - [ ] 8. メイン関数の統合
-- [ ] 8.1 main関数の実装
+- [x] 8.1 main関数の実装
   - ParseBrakemanJSON(os.Stdin)で標準入力から読み込み
   - エラー時はHandleErrorを呼び出し、返された終了コードで終了
   - ConvertWarningsで変換を実行
