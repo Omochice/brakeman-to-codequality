@@ -87,7 +87,7 @@
   - _Requirements: 1.2, 1.3, 1.4, 2.4_
 
 - [ ] 6. 出力処理の実装
-- [ ] 6.1 WriteCodeQualityJSON関数の実装
+- [x] 6.1 WriteCodeQualityJSON関数の実装
   - `json.NewEncoder(io.Writer)`を使用してJSON配列を出力
   - BOMなしUTF-8出力を保証（標準ライブラリが自動対応）
   - 空配列も正しく出力

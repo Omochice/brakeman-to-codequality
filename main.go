@@ -125,6 +125,15 @@ func ParseBrakemanJSON(r io.Reader) (*BrakemanReport, error) {
 	return &report, nil
 }
 
+// WriteCodeQualityJSON writes GitLab Code Quality JSON array to an io.Writer
+func WriteCodeQualityJSON(violations []CodeQualityViolation, w io.Writer) error {
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(violations); err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	fmt.Fprintln(os.Stderr, "brakeman-to-codequality: Not yet implemented")
 	os.Exit(1)
