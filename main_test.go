@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"os"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -284,5 +287,170 @@ func TestConvertWarnings(t *testing.T) {
 		violations := ConvertWarnings(warnings)
 		require.Len(t, violations, 1)
 		require.Equal(t, "SQL Injection", violations[0].CheckName)
+	})
+}
+
+func TestParseBrakemanJSON(t *testing.T) {
+	t.Run("parses valid JSON", func(t *testing.T) {
+		input := `{"warnings":[{"warning_type":"SQL Injection","message":"Possible SQL injection","file":"app/models/user.rb","line":42,"confidence":"High"}]}`
+		reader := strings.NewReader(input)
+
+		report, err := ParseBrakemanJSON(reader)
+		require.NoError(t, err)
+		require.NotNil(t, report)
+		require.Len(t, report.Warnings, 1)
+		require.Equal(t, "SQL Injection", report.Warnings[0].WarningType)
+	})
+
+	t.Run("returns error for invalid JSON", func(t *testing.T) {
+		input := `{invalid json`
+		reader := strings.NewReader(input)
+
+		report, err := ParseBrakemanJSON(reader)
+		require.Error(t, err)
+		require.Nil(t, report)
+	})
+
+	t.Run("handles empty warnings array", func(t *testing.T) {
+		input := `{"warnings":[]}`
+		reader := strings.NewReader(input)
+
+		report, err := ParseBrakemanJSON(reader)
+		require.NoError(t, err)
+		require.NotNil(t, report)
+		require.Len(t, report.Warnings, 0)
+	})
+
+	t.Run("handles missing warnings field", func(t *testing.T) {
+		input := `{}`
+		reader := strings.NewReader(input)
+
+		report, err := ParseBrakemanJSON(reader)
+		require.NoError(t, err)
+		require.NotNil(t, report)
+		require.Len(t, report.Warnings, 0)
+	})
+}
+
+func TestWriteCodeQualityJSON(t *testing.T) {
+	t.Run("writes valid JSON array", func(t *testing.T) {
+		violations := []CodeQualityViolation{
+			{
+				Description: "Possible SQL injection",
+				CheckName:   "SQL Injection",
+				Fingerprint: "abc123",
+				Severity:    "critical",
+				Location: Location{
+					Path:  "app/models/user.rb",
+					Lines: Lines{Begin: 42},
+				},
+			},
+		}
+
+		var buf bytes.Buffer
+		err := WriteCodeQualityJSON(violations, &buf)
+		require.NoError(t, err)
+
+		output := buf.String()
+		require.Contains(t, output, "Possible SQL injection")
+		require.Contains(t, output, "SQL Injection")
+		require.Contains(t, output, "abc123")
+		require.Contains(t, output, "critical")
+	})
+
+	t.Run("writes empty array", func(t *testing.T) {
+		violations := []CodeQualityViolation{}
+
+		var buf bytes.Buffer
+		err := WriteCodeQualityJSON(violations, &buf)
+		require.NoError(t, err)
+
+		output := buf.String()
+		require.Contains(t, output, "[")
+		require.Contains(t, output, "]")
+	})
+
+	t.Run("output has no BOM", func(t *testing.T) {
+		violations := []CodeQualityViolation{}
+
+		var buf bytes.Buffer
+		err := WriteCodeQualityJSON(violations, &buf)
+		require.NoError(t, err)
+
+		output := buf.Bytes()
+		require.False(t, bytes.HasPrefix(output, []byte{0xEF, 0xBB, 0xBF}))
+	})
+}
+
+func TestHandleError(t *testing.T) {
+	t.Run("writes error to stderr and returns 1", func(t *testing.T) {
+		// Capture stderr
+		old := os.Stderr
+		r, w, _ := os.Pipe()
+		os.Stderr = w
+
+		err := &testError{msg: "test error"}
+		exitCode := HandleError(err)
+
+		w.Close()
+		os.Stderr = old
+
+		var buf bytes.Buffer
+		buf.ReadFrom(r)
+		output := buf.String()
+
+		require.Equal(t, 1, exitCode)
+		require.Contains(t, output, "Error:")
+		require.Contains(t, output, "test error")
+	})
+}
+
+type testError struct {
+	msg string
+}
+
+func (e *testError) Error() string {
+	return e.msg
+}
+
+func TestEndToEnd(t *testing.T) {
+	t.Run("complete conversion flow", func(t *testing.T) {
+		input := `{"warnings":[{"warning_type":"SQL Injection","message":"Possible SQL injection","file":"app/models/user.rb","line":42,"confidence":"High","code":"User.where(...)"}]}`
+		reader := strings.NewReader(input)
+
+		report, err := ParseBrakemanJSON(reader)
+		require.NoError(t, err)
+
+		violations := ConvertWarnings(report.Warnings)
+		require.Len(t, violations, 1)
+
+		var buf bytes.Buffer
+		err = WriteCodeQualityJSON(violations, &buf)
+		require.NoError(t, err)
+
+		output := buf.String()
+		require.Contains(t, output, "Possible SQL injection")
+		require.Contains(t, output, "SQL Injection")
+		require.Contains(t, output, "critical")
+		require.Contains(t, output, "app/models/user.rb")
+	})
+
+	t.Run("handles empty warnings", func(t *testing.T) {
+		input := `{"warnings":[]}`
+		reader := strings.NewReader(input)
+
+		report, err := ParseBrakemanJSON(reader)
+		require.NoError(t, err)
+
+		violations := ConvertWarnings(report.Warnings)
+		require.Len(t, violations, 0)
+
+		var buf bytes.Buffer
+		err = WriteCodeQualityJSON(violations, &buf)
+		require.NoError(t, err)
+
+		output := buf.String()
+		require.Contains(t, output, "[")
+		require.Contains(t, output, "]")
 	})
 }
