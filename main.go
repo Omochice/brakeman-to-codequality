@@ -134,6 +134,12 @@ func WriteCodeQualityJSON(violations []CodeQualityViolation, w io.Writer) error 
 	return nil
 }
 
+// HandleError outputs an error message to stderr and returns a non-zero exit code
+func HandleError(err error) int {
+	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	return 1
+}
+
 func main() {
 	fmt.Fprintln(os.Stderr, "brakeman-to-codequality: Not yet implemented")
 	os.Exit(1)
