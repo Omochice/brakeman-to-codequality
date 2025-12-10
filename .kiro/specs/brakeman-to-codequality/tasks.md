@@ -7,19 +7,19 @@
 ## 実装タスク
 
 - [ ] 1. プロジェクトセットアップとデータ構造定義
-- [ ] 1.1 Goモジュールの初期化とプロジェクト構造の作成
+- [x] 1.1 Goモジュールの初期化とプロジェクト構造の作成
   - `go mod init`でモジュールを初期化
   - `main.go`を作成し、基本的なパッケージ構造を設定
   - `go.mod`に必要な依存関係（testify）を追加
   - _Requirements: 1.1_
 
-- [ ] 1.2 Brakeman入力データ構造の定義
+- [x] 1.2 Brakeman入力データ構造の定義
   - `BrakemanReport`構造体を定義（warnings配列を含む）
   - `BrakemanWarning`構造体を定義（warning_type, message, file, line, confidence, codeフィールド）
   - JSONタグを適切に設定（`json:"field_name"`および`omitempty`）
   - _Requirements: 2.1, 2.2, 2.3_
 
-- [ ] 1.3 GitLab出力データ構造の定義
+- [x] 1.3 GitLab出力データ構造の定義
   - `CodeQualityViolation`構造体を定義（description, check_name, fingerprint, severity, location）
   - `Location`および`Lines`構造体を定義
   - JSONタグを適切に設定
