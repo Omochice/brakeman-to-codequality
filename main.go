@@ -1,8 +1,11 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -53,6 +56,21 @@ func MapSeverity(confidence string) string {
 	default:
 		return "info"
 	}
+}
+
+// GenerateFingerprint creates a unique SHA-256 hash for a warning
+func GenerateFingerprint(file string, line int, warningType, message, code string) string {
+	// Combine fields to create input for hashing
+	input := file + ":" + strconv.Itoa(line) + ":" + warningType + ":" + message
+	if code != "" {
+		input += ":" + code
+	}
+
+	// Calculate SHA-256 hash
+	hash := sha256.Sum256([]byte(input))
+
+	// Convert to 64-character hex string
+	return hex.EncodeToString(hash[:])
 }
 
 func main() {
