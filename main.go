@@ -73,6 +73,39 @@ func GenerateFingerprint(file string, line int, warningType, message, code strin
 	return hex.EncodeToString(hash[:])
 }
 
+// ConvertWarnings transforms Brakeman warnings to GitLab Code Quality violations
+func ConvertWarnings(warnings []BrakemanWarning) []CodeQualityViolation {
+	violations := make([]CodeQualityViolation, 0, len(warnings))
+
+	for _, warning := range warnings {
+		// Skip warnings with missing required fields
+		if warning.File == "" || warning.Line == 0 || warning.WarningType == "" || warning.Message == "" {
+			continue
+		}
+
+		// Remove "./" prefix from file path
+		path := strings.TrimPrefix(warning.File, "./")
+
+		// Create violation
+		violation := CodeQualityViolation{
+			Description: warning.Message,
+			CheckName:   warning.WarningType,
+			Fingerprint: GenerateFingerprint(warning.File, warning.Line, warning.WarningType, warning.Message, warning.Code),
+			Severity:    MapSeverity(warning.Confidence),
+			Location: Location{
+				Path: path,
+				Lines: Lines{
+					Begin: warning.Line,
+				},
+			},
+		}
+
+		violations = append(violations, violation)
+	}
+
+	return violations
+}
+
 func main() {
 	fmt.Fprintln(os.Stderr, "brakeman-to-codequality: Not yet implemented")
 	os.Exit(1)

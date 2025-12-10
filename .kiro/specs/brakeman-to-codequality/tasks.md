@@ -55,7 +55,7 @@
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
 - [ ] 4. 変換ロジックの実装
-- [ ] 4.1 ConvertWarnings関数の実装
+- [x] 4.1 ConvertWarnings関数の実装
   - BrakemanWarningのスライスを受け取り、CodeQualityViolationのスライスを返す
   - 各警告に対してMapSeverityとGenerateFingerprintを呼び出す
   - フィールドマッピングを実装（warning_type→check_name, message→description, file→location.path, line→location.lines.begin）
