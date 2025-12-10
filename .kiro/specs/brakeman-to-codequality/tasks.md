@@ -26,7 +26,7 @@
   - _Requirements: 3.1, 3.3_
 
 - [ ] 2. 重要度マッピング機能の実装
-- [ ] 2.1 (P) MapSeverity関数の実装
+- [x] 2.1 (P) MapSeverity関数の実装
   - Brakemanの信頼度（High/Medium/Weak/Low）をGitLabの重要度（critical/major/minor/info）にマッピング
   - 大文字小文字を無視した比較を実装（`strings.ToLower()`）
   - 未知の信頼度レベルに対してデフォルト値"info"を返す

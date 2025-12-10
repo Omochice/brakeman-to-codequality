@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 // BrakemanReport represents the structure of Brakeman JSON output
@@ -38,6 +39,20 @@ type Location struct {
 // Lines represents the line numbers where a violation occurs
 type Lines struct {
 	Begin int `json:"begin"`
+}
+
+// MapSeverity converts Brakeman confidence levels to GitLab severity values
+func MapSeverity(confidence string) string {
+	switch strings.ToLower(confidence) {
+	case "high":
+		return "critical"
+	case "medium":
+		return "major"
+	case "weak", "low":
+		return "minor"
+	default:
+		return "info"
+	}
 }
 
 func main() {
