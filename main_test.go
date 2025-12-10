@@ -131,3 +131,158 @@ func TestGenerateFingerprint(t *testing.T) {
 		require.NotEqual(t, fp1, fp2)
 	})
 }
+
+func TestConvertWarnings(t *testing.T) {
+	t.Run("converts valid warning correctly", func(t *testing.T) {
+		warnings := []BrakemanWarning{
+			{
+				WarningType: "SQL Injection",
+				Message:     "Possible SQL injection",
+				File:        "app/models/user.rb",
+				Line:        42,
+				Confidence:  "High",
+				Code:        "User.where(...)",
+			},
+		}
+
+		violations := ConvertWarnings(warnings)
+		require.Len(t, violations, 1)
+
+		violation := violations[0]
+		require.Equal(t, "Possible SQL injection", violation.Description)
+		require.Equal(t, "SQL Injection", violation.CheckName)
+		require.Equal(t, "critical", violation.Severity)
+		require.Equal(t, "app/models/user.rb", violation.Location.Path)
+		require.Equal(t, 42, violation.Location.Lines.Begin)
+		require.NotEmpty(t, violation.Fingerprint)
+	})
+
+	t.Run("skips warning with missing file", func(t *testing.T) {
+		warnings := []BrakemanWarning{
+			{
+				WarningType: "SQL Injection",
+				Message:     "Possible SQL injection",
+				File:        "",
+				Line:        42,
+				Confidence:  "High",
+			},
+		}
+
+		violations := ConvertWarnings(warnings)
+		require.Len(t, violations, 0)
+	})
+
+	t.Run("skips warning with missing line", func(t *testing.T) {
+		warnings := []BrakemanWarning{
+			{
+				WarningType: "SQL Injection",
+				Message:     "Possible SQL injection",
+				File:        "app/models/user.rb",
+				Line:        0,
+				Confidence:  "High",
+			},
+		}
+
+		violations := ConvertWarnings(warnings)
+		require.Len(t, violations, 0)
+	})
+
+	t.Run("skips warning with missing warning type", func(t *testing.T) {
+		warnings := []BrakemanWarning{
+			{
+				WarningType: "",
+				Message:     "Possible SQL injection",
+				File:        "app/models/user.rb",
+				Line:        42,
+				Confidence:  "High",
+			},
+		}
+
+		violations := ConvertWarnings(warnings)
+		require.Len(t, violations, 0)
+	})
+
+	t.Run("skips warning with missing message", func(t *testing.T) {
+		warnings := []BrakemanWarning{
+			{
+				WarningType: "SQL Injection",
+				Message:     "",
+				File:        "app/models/user.rb",
+				Line:        42,
+				Confidence:  "High",
+			},
+		}
+
+		violations := ConvertWarnings(warnings)
+		require.Len(t, violations, 0)
+	})
+
+	t.Run("removes ./ prefix from file path", func(t *testing.T) {
+		warnings := []BrakemanWarning{
+			{
+				WarningType: "SQL Injection",
+				Message:     "Possible SQL injection",
+				File:        "./app/models/user.rb",
+				Line:        42,
+				Confidence:  "High",
+			},
+		}
+
+		violations := ConvertWarnings(warnings)
+		require.Len(t, violations, 1)
+		require.Equal(t, "app/models/user.rb", violations[0].Location.Path)
+	})
+
+	t.Run("handles empty array", func(t *testing.T) {
+		warnings := []BrakemanWarning{}
+		violations := ConvertWarnings(warnings)
+		require.Len(t, violations, 0)
+	})
+
+	t.Run("processes multiple warnings", func(t *testing.T) {
+		warnings := []BrakemanWarning{
+			{
+				WarningType: "SQL Injection",
+				Message:     "Possible SQL injection",
+				File:        "app/models/user.rb",
+				Line:        42,
+				Confidence:  "High",
+			},
+			{
+				WarningType: "XSS",
+				Message:     "Possible XSS vulnerability",
+				File:        "app/views/users/show.html.erb",
+				Line:        10,
+				Confidence:  "Medium",
+			},
+		}
+
+		violations := ConvertWarnings(warnings)
+		require.Len(t, violations, 2)
+		require.Equal(t, "SQL Injection", violations[0].CheckName)
+		require.Equal(t, "XSS", violations[1].CheckName)
+	})
+
+	t.Run("skips invalid warnings and processes valid ones", func(t *testing.T) {
+		warnings := []BrakemanWarning{
+			{
+				WarningType: "SQL Injection",
+				Message:     "Possible SQL injection",
+				File:        "app/models/user.rb",
+				Line:        42,
+				Confidence:  "High",
+			},
+			{
+				WarningType: "XSS",
+				Message:     "",
+				File:        "app/views/users/show.html.erb",
+				Line:        10,
+				Confidence:  "Medium",
+			},
+		}
+
+		violations := ConvertWarnings(warnings)
+		require.Len(t, violations, 1)
+		require.Equal(t, "SQL Injection", violations[0].CheckName)
+	})
+}
