@@ -1,0 +1,114 @@
+stages:
+  - build
+  - test
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  # Container image will be: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+
+# Build and push Docker image to GitLab Container Registry
+build-image:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    # Build the image
+    - docker build -t $IMAGE_TAG -t $IMAGE_LATEST .
+    # Push branch-specific tag
+    - docker push $IMAGE_TAG
+    # Push latest tag only for main/master branch
+    - |
+      if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
+        docker push $IMAGE_LATEST
+      fi
+  after_script:
+    - docker logout "$CI_REGISTRY"
+  only:
+    - main
+    - master
+    - branches
+    - tags
+
+# Test the Docker image
+test-image:
+  stage: test
+  image: docker:24
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    # Pull the image
+    - docker pull $IMAGE_TAG
+    # Test basic functionality with sample input
+    - echo '{"warnings":[]}' | docker run --rm -i $IMAGE_TAG > test-output.json
+    # Verify output is valid JSON
+    - cat test-output.json
+    - '[ "$(cat test-output.json)" = "[]" ] || (echo "Unexpected output" && exit 1)'
+  after_script:
+    - docker logout "$CI_REGISTRY"
+  dependencies:
+    - build-image
+  only:
+    - main
+    - master
+    - branches
+    - tags
+
+# Run Go tests
+test-go:
+  stage: test
+  image: golang:1.25
+  script:
+    - go test -v -race -coverprofile=coverage.out ./...
+    - go tool cover -func=coverage.out
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.out
+  only:
+    - main
+    - master
+    - merge_requests
+
+# Example job showing how to use the built image
+example-usage:
+  stage: test
+  image: ruby:3.2
+  services:
+    - docker:24-dind
+  variables:
+    # Use the image we just built
+    CONVERTER_IMAGE: $IMAGE_TAG
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - gem install brakeman
+  script:
+    # Create a sample Rails app structure for Brakeman to scan
+    - mkdir -p app/controllers app/models app/views
+    - echo "class ApplicationController < ActionController::Base; end" > app/controllers/application_controller.rb
+    # Run Brakeman and convert to Code Quality format
+    - brakeman -f json --no-exit-on-warn --no-exit-on-error -o brakeman-report.json || true
+    - docker run --rm -i $CONVERTER_IMAGE < brakeman-report.json > codequality.json
+    - echo "Generated Code Quality report:"
+    - cat codequality.json
+  after_script:
+    - docker logout "$CI_REGISTRY"
+  artifacts:
+    paths:
+      - brakeman-report.json
+      - codequality.json
+    expire_in: 7 days
+  dependencies:
+    - build-image
+  only:
+    - main
+    - master
+    - merge_requests
