@@ -30,6 +30,12 @@ Build the Docker image locally:
 docker build -t brakeman-to-codequality:latest .
 ```
 
+Or pull from GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/omochice/brakeman-to-codequality:latest
+```
+
 Or pull from GitLab Container Registry (if using GitLab CI):
 
 ```bash
@@ -59,16 +65,65 @@ cat brakeman-report.json | brakeman-to-codequality > codequality.json
 
 ## CI/CD Integration
 
+### GitHub Actions
+
+To set up automatic builds with GitHub Actions, copy `.github-workflows-docker.yml.example` to `.github/workflows/docker.yml`. This workflow will:
+- Build the Docker image and push it to GitHub Container Registry (ghcr.io)
+- Run tests on the image
+- Support semantic versioning tags
+
+The image will be available at: `ghcr.io/omochice/brakeman-to-codequality:latest`
+
+Setup:
+```bash
+mkdir -p .github/workflows
+cp .github-workflows-docker.yml.example .github/workflows/docker.yml
+git add .github/workflows/docker.yml
+git commit -m "Add GitHub Actions workflow"
+git push
+```
+
+#### Using the built image in GitHub Actions:
+
+```yaml
+name: Brakeman Security Scan
+
+on: [push, pull_request]
+
+jobs:
+  brakeman:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install Brakeman
+        run: gem install brakeman
+
+      - name: Run Brakeman scan
+        run: brakeman -f json | docker run --rm -i ghcr.io/omochice/brakeman-to-codequality:latest > codequality.json
+
+      - name: Upload Code Quality report
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-quality-report
+          path: codequality.json
+```
+
 ### GitLab CI
 
-This repository includes a `.gitlab-ci.yml` that automatically:
+This repository also includes a `.gitlab-ci.yml` that automatically:
 - Builds the Docker image and pushes it to GitLab Container Registry
 - Runs tests on the image
 - Demonstrates usage with Brakeman scanning
 
 The image is available at: `$CI_REGISTRY_IMAGE:latest` (for the main branch) or `$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG` (for specific branches/tags)
 
-#### Using the built image in your project:
+#### Using the built image in GitLab CI:
 
 ```yaml
 brakeman-scan:
