@@ -292,56 +292,6 @@ func TestConvertWarnings(t *testing.T) {
 	})
 }
 
-func TestWriteCodeQualityJSON(t *testing.T) {
-	t.Run("writes valid JSON array", func(t *testing.T) {
-		violations := []CodeQualityViolation{
-			{
-				Description: "Possible SQL injection",
-				CheckName:   "SQL Injection",
-				Fingerprint: "abc123",
-				Severity:    "critical",
-				Location: Location{
-					Path:  "app/models/user.rb",
-					Lines: Lines{Begin: 42},
-				},
-			},
-		}
-
-		var buf bytes.Buffer
-		err := WriteCodeQualityJSON(violations, &buf)
-		require.NoError(t, err)
-
-		output := buf.String()
-		require.Contains(t, output, "Possible SQL injection")
-		require.Contains(t, output, "SQL Injection")
-		require.Contains(t, output, "abc123")
-		require.Contains(t, output, "critical")
-	})
-
-	t.Run("writes empty array", func(t *testing.T) {
-		violations := []CodeQualityViolation{}
-
-		var buf bytes.Buffer
-		err := WriteCodeQualityJSON(violations, &buf)
-		require.NoError(t, err)
-
-		output := buf.String()
-		require.Contains(t, output, "[")
-		require.Contains(t, output, "]")
-	})
-
-	t.Run("output has no BOM", func(t *testing.T) {
-		violations := []CodeQualityViolation{}
-
-		var buf bytes.Buffer
-		err := WriteCodeQualityJSON(violations, &buf)
-		require.NoError(t, err)
-
-		output := buf.Bytes()
-		require.False(t, bytes.HasPrefix(output, []byte{0xEF, 0xBB, 0xBF}))
-	})
-}
-
 func TestHandleError(t *testing.T) {
 	t.Run("writes error to writer and returns 1", func(t *testing.T) {
 		var buf bytes.Buffer

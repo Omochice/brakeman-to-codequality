@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -11,24 +10,8 @@ import (
 
 	"github.com/Omochice/brakeman-to-codequality/brakeman"
 	"github.com/Omochice/brakeman-to-codequality/cli"
+	"github.com/Omochice/brakeman-to-codequality/codequality"
 )
-
-type CodeQualityViolation struct {
-	Description string   `json:"description"`
-	CheckName   string   `json:"check_name"`
-	Fingerprint string   `json:"fingerprint"`
-	Severity    string   `json:"severity"`
-	Location    Location `json:"location"`
-}
-
-type Location struct {
-	Path  string `json:"path"`
-	Lines Lines  `json:"lines"`
-}
-
-type Lines struct {
-	Begin int `json:"begin"`
-}
 
 func MapSeverity(confidence string) string {
 	switch strings.ToLower(confidence) {
@@ -53,8 +36,8 @@ func GenerateFingerprint(file string, line int, warningType, message, code strin
 	return hex.EncodeToString(hash[:])
 }
 
-func ConvertWarnings(warnings []brakeman.Warning) []CodeQualityViolation {
-	violations := make([]CodeQualityViolation, 0, len(warnings))
+func ConvertWarnings(warnings []brakeman.Warning) []codequality.Violation {
+	violations := make([]codequality.Violation, 0, len(warnings))
 
 	for _, warning := range warnings {
 		if warning.File == "" || warning.Line == 0 || warning.WarningType == "" || warning.Message == "" {
@@ -63,14 +46,14 @@ func ConvertWarnings(warnings []brakeman.Warning) []CodeQualityViolation {
 
 		path := strings.TrimPrefix(warning.File, "./")
 
-		violation := CodeQualityViolation{
+		violation := codequality.Violation{
 			Description: warning.Message,
 			CheckName:   warning.WarningType,
 			Fingerprint: GenerateFingerprint(warning.File, warning.Line, warning.WarningType, warning.Message, warning.Code),
 			Severity:    MapSeverity(warning.Confidence),
-			Location: Location{
+			Location: codequality.Location{
 				Path: path,
-				Lines: Lines{
+				Lines: codequality.Lines{
 					Begin: warning.Line,
 				},
 			},
@@ -80,14 +63,6 @@ func ConvertWarnings(warnings []brakeman.Warning) []CodeQualityViolation {
 	}
 
 	return violations
-}
-
-func WriteCodeQualityJSON(violations []CodeQualityViolation, w io.Writer) error {
-	encoder := json.NewEncoder(w)
-	if err := encoder.Encode(violations); err != nil {
-		return err
-	}
-	return nil
 }
 
 func handleError(w io.Writer, err error) int {
@@ -103,7 +78,7 @@ func command(args []string, inout *cli.ProcInout) int {
 
 	violations := ConvertWarnings(report.Warnings)
 
-	if err := WriteCodeQualityJSON(violations, inout.Stdout); err != nil {
+	if err := codequality.Write(violations, inout.Stdout); err != nil {
 		return handleError(inout.Stderr, err)
 	}
 
