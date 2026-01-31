@@ -95,7 +95,7 @@ This ensures GitLab can accurately track warnings across scans.
 
 ## License
 
-MIT
+[zlib](./LICENSE)
 
 ## Contributing
 
