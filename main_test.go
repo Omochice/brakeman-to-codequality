@@ -2,11 +2,12 @@ package main
 
 import (
 	"bytes"
-	"os"
+	"errors"
 	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/Omochice/brakeman-to-codequality/cli"
 	"github.com/stretchr/testify/require"
 )
 
@@ -383,52 +384,32 @@ func TestWriteCodeQualityJSON(t *testing.T) {
 }
 
 func TestHandleError(t *testing.T) {
-	t.Run("writes error to stderr and returns 1", func(t *testing.T) {
-		// Capture stderr
-		old := os.Stderr
-		r, w, _ := os.Pipe()
-		os.Stderr = w
-
-		err := &testError{msg: "test error"}
-		exitCode := HandleError(err)
-
-		w.Close()
-		os.Stderr = old
-
+	t.Run("writes error to writer and returns 1", func(t *testing.T) {
 		var buf bytes.Buffer
-		buf.ReadFrom(r)
-		output := buf.String()
+		exitCode := handleError(&buf, errors.New("test error"))
 
 		require.Equal(t, 1, exitCode)
-		require.Contains(t, output, "Error:")
-		require.Contains(t, output, "test error")
+		require.Contains(t, buf.String(), "Error:")
+		require.Contains(t, buf.String(), "test error")
 	})
-}
-
-type testError struct {
-	msg string
-}
-
-func (e *testError) Error() string {
-	return e.msg
 }
 
 func TestEndToEnd(t *testing.T) {
 	t.Run("complete conversion flow", func(t *testing.T) {
 		input := `{"warnings":[{"warning_type":"SQL Injection","message":"Possible SQL injection","file":"app/models/user.rb","line":42,"confidence":"High","code":"User.where(...)"}]}`
-		reader := strings.NewReader(input)
 
-		report, err := ParseBrakemanJSON(reader)
-		require.NoError(t, err)
+		var stdout, stderr bytes.Buffer
+		inout := &cli.ProcInout{
+			Stdin:  strings.NewReader(input),
+			Stdout: &stdout,
+			Stderr: &stderr,
+		}
 
-		violations := ConvertWarnings(report.Warnings)
-		require.Len(t, violations, 1)
+		exitCode := command(nil, inout)
+		require.Equal(t, 0, exitCode)
+		require.Empty(t, stderr.String())
 
-		var buf bytes.Buffer
-		err = WriteCodeQualityJSON(violations, &buf)
-		require.NoError(t, err)
-
-		output := buf.String()
+		output := stdout.String()
 		require.Contains(t, output, "Possible SQL injection")
 		require.Contains(t, output, "SQL Injection")
 		require.Contains(t, output, "critical")
@@ -437,20 +418,35 @@ func TestEndToEnd(t *testing.T) {
 
 	t.Run("handles empty warnings", func(t *testing.T) {
 		input := `{"warnings":[]}`
-		reader := strings.NewReader(input)
 
-		report, err := ParseBrakemanJSON(reader)
-		require.NoError(t, err)
+		var stdout, stderr bytes.Buffer
+		inout := &cli.ProcInout{
+			Stdin:  strings.NewReader(input),
+			Stdout: &stdout,
+			Stderr: &stderr,
+		}
 
-		violations := ConvertWarnings(report.Warnings)
-		require.Len(t, violations, 0)
+		exitCode := command(nil, inout)
+		require.Equal(t, 0, exitCode)
+		require.Empty(t, stderr.String())
 
-		var buf bytes.Buffer
-		err = WriteCodeQualityJSON(violations, &buf)
-		require.NoError(t, err)
-
-		output := buf.String()
+		output := stdout.String()
 		require.Contains(t, output, "[")
 		require.Contains(t, output, "]")
+	})
+
+	t.Run("returns non-zero exit code for invalid JSON input", func(t *testing.T) {
+		input := `{invalid json`
+
+		var stdout, stderr bytes.Buffer
+		inout := &cli.ProcInout{
+			Stdin:  strings.NewReader(input),
+			Stdout: &stdout,
+			Stderr: &stderr,
+		}
+
+		exitCode := command(nil, inout)
+		require.Equal(t, 1, exitCode)
+		require.Contains(t, stderr.String(), "Error:")
 	})
 }

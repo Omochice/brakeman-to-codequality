@@ -6,27 +6,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 	"strings"
+
+	"github.com/Omochice/brakeman-to-codequality/cli"
 )
 
-// BrakemanReport represents the structure of Brakeman JSON output
 type BrakemanReport struct {
 	Warnings []BrakemanWarning `json:"warnings"`
 }
 
-// BrakemanWarning represents a single security warning from Brakeman
 type BrakemanWarning struct {
 	WarningType string `json:"warning_type"`
 	Message     string `json:"message"`
 	File        string `json:"file"`
 	Line        int    `json:"line"`
 	Confidence  string `json:"confidence"`
-	Code        string `json:"code,omitempty"` // Optional field
+	Code        string `json:"code,omitempty"`
 }
 
-// CodeQualityViolation represents a GitLab Code Quality violation
 type CodeQualityViolation struct {
 	Description string   `json:"description"`
 	CheckName   string   `json:"check_name"`
@@ -35,18 +33,15 @@ type CodeQualityViolation struct {
 	Location    Location `json:"location"`
 }
 
-// Location represents the file location of a violation
 type Location struct {
 	Path  string `json:"path"`
 	Lines Lines  `json:"lines"`
 }
 
-// Lines represents the line numbers where a violation occurs
 type Lines struct {
 	Begin int `json:"begin"`
 }
 
-// MapSeverity converts Brakeman confidence levels to GitLab severity values
 func MapSeverity(confidence string) string {
 	switch strings.ToLower(confidence) {
 	case "high":
@@ -60,35 +55,26 @@ func MapSeverity(confidence string) string {
 	}
 }
 
-// GenerateFingerprint creates a unique SHA-256 hash for a warning
 func GenerateFingerprint(file string, line int, warningType, message, code string) string {
-	// Combine fields to create input for hashing
 	input := file + ":" + strconv.Itoa(line) + ":" + warningType + ":" + message
 	if code != "" {
 		input += ":" + code
 	}
 
-	// Calculate SHA-256 hash
 	hash := sha256.Sum256([]byte(input))
-
-	// Convert to 64-character hex string
 	return hex.EncodeToString(hash[:])
 }
 
-// ConvertWarnings transforms Brakeman warnings to GitLab Code Quality violations
 func ConvertWarnings(warnings []BrakemanWarning) []CodeQualityViolation {
 	violations := make([]CodeQualityViolation, 0, len(warnings))
 
 	for _, warning := range warnings {
-		// Skip warnings with missing required fields
 		if warning.File == "" || warning.Line == 0 || warning.WarningType == "" || warning.Message == "" {
 			continue
 		}
 
-		// Remove "./" prefix from file path
 		path := strings.TrimPrefix(warning.File, "./")
 
-		// Create violation
 		violation := CodeQualityViolation{
 			Description: warning.Message,
 			CheckName:   warning.WarningType,
@@ -108,7 +94,6 @@ func ConvertWarnings(warnings []BrakemanWarning) []CodeQualityViolation {
 	return violations
 }
 
-// ParseBrakemanJSON reads and parses Brakeman JSON from an io.Reader
 func ParseBrakemanJSON(r io.Reader) (*BrakemanReport, error) {
 	var report BrakemanReport
 
@@ -117,7 +102,6 @@ func ParseBrakemanJSON(r io.Reader) (*BrakemanReport, error) {
 		return nil, err
 	}
 
-	// If warnings field is nil, initialize as empty slice
 	if report.Warnings == nil {
 		report.Warnings = []BrakemanWarning{}
 	}
@@ -125,7 +109,6 @@ func ParseBrakemanJSON(r io.Reader) (*BrakemanReport, error) {
 	return &report, nil
 }
 
-// WriteCodeQualityJSON writes GitLab Code Quality JSON array to an io.Writer
 func WriteCodeQualityJSON(violations []CodeQualityViolation, w io.Writer) error {
 	encoder := json.NewEncoder(w)
 	if err := encoder.Encode(violations); err != nil {
@@ -134,27 +117,26 @@ func WriteCodeQualityJSON(violations []CodeQualityViolation, w io.Writer) error 
 	return nil
 }
 
-// HandleError outputs an error message to stderr and returns a non-zero exit code
-func HandleError(err error) int {
-	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+func handleError(w io.Writer, err error) int {
+	fmt.Fprintf(w, "Error: %v\n", err)
 	return 1
 }
 
-func main() {
-	// Parse Brakeman JSON from standard input
-	report, err := ParseBrakemanJSON(os.Stdin)
+func command(args []string, inout *cli.ProcInout) int {
+	report, err := ParseBrakemanJSON(inout.Stdin)
 	if err != nil {
-		os.Exit(HandleError(err))
+		return handleError(inout.Stderr, err)
 	}
 
-	// Convert warnings to GitLab Code Quality violations
 	violations := ConvertWarnings(report.Warnings)
 
-	// Write GitLab Code Quality JSON to standard output
-	if err := WriteCodeQualityJSON(violations, os.Stdout); err != nil {
-		os.Exit(HandleError(err))
+	if err := WriteCodeQualityJSON(violations, inout.Stdout); err != nil {
+		return handleError(inout.Stderr, err)
 	}
 
-	// Success
-	os.Exit(0)
+	return 0
+}
+
+func main() {
+	cli.Run(command)
 }
