@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Omochice/brakeman-to-codequality/brakeman"
 	"github.com/Omochice/brakeman-to-codequality/cli"
 	"github.com/stretchr/testify/require"
 )
@@ -138,7 +139,7 @@ func TestGenerateFingerprint(t *testing.T) {
 
 func TestConvertWarnings(t *testing.T) {
 	t.Run("converts valid warning correctly", func(t *testing.T) {
-		warnings := []BrakemanWarning{
+		warnings := []brakeman.Warning{
 			{
 				WarningType: "SQL Injection",
 				Message:     "Possible SQL injection",
@@ -162,7 +163,7 @@ func TestConvertWarnings(t *testing.T) {
 	})
 
 	t.Run("skips warning with missing file", func(t *testing.T) {
-		warnings := []BrakemanWarning{
+		warnings := []brakeman.Warning{
 			{
 				WarningType: "SQL Injection",
 				Message:     "Possible SQL injection",
@@ -177,7 +178,7 @@ func TestConvertWarnings(t *testing.T) {
 	})
 
 	t.Run("skips warning with missing line", func(t *testing.T) {
-		warnings := []BrakemanWarning{
+		warnings := []brakeman.Warning{
 			{
 				WarningType: "SQL Injection",
 				Message:     "Possible SQL injection",
@@ -192,7 +193,7 @@ func TestConvertWarnings(t *testing.T) {
 	})
 
 	t.Run("skips warning with missing warning type", func(t *testing.T) {
-		warnings := []BrakemanWarning{
+		warnings := []brakeman.Warning{
 			{
 				WarningType: "",
 				Message:     "Possible SQL injection",
@@ -207,7 +208,7 @@ func TestConvertWarnings(t *testing.T) {
 	})
 
 	t.Run("skips warning with missing message", func(t *testing.T) {
-		warnings := []BrakemanWarning{
+		warnings := []brakeman.Warning{
 			{
 				WarningType: "SQL Injection",
 				Message:     "",
@@ -222,7 +223,7 @@ func TestConvertWarnings(t *testing.T) {
 	})
 
 	t.Run("removes ./ prefix from file path", func(t *testing.T) {
-		warnings := []BrakemanWarning{
+		warnings := []brakeman.Warning{
 			{
 				WarningType: "SQL Injection",
 				Message:     "Possible SQL injection",
@@ -238,13 +239,13 @@ func TestConvertWarnings(t *testing.T) {
 	})
 
 	t.Run("handles empty array", func(t *testing.T) {
-		warnings := []BrakemanWarning{}
+		warnings := []brakeman.Warning{}
 		violations := ConvertWarnings(warnings)
 		require.Len(t, violations, 0)
 	})
 
 	t.Run("processes multiple warnings", func(t *testing.T) {
-		warnings := []BrakemanWarning{
+		warnings := []brakeman.Warning{
 			{
 				WarningType: "SQL Injection",
 				Message:     "Possible SQL injection",
@@ -268,7 +269,7 @@ func TestConvertWarnings(t *testing.T) {
 	})
 
 	t.Run("skips invalid warnings and processes valid ones", func(t *testing.T) {
-		warnings := []BrakemanWarning{
+		warnings := []brakeman.Warning{
 			{
 				WarningType: "SQL Injection",
 				Message:     "Possible SQL injection",
@@ -288,48 +289,6 @@ func TestConvertWarnings(t *testing.T) {
 		violations := ConvertWarnings(warnings)
 		require.Len(t, violations, 1)
 		require.Equal(t, "SQL Injection", violations[0].CheckName)
-	})
-}
-
-func TestParseBrakemanJSON(t *testing.T) {
-	t.Run("parses valid JSON", func(t *testing.T) {
-		input := `{"warnings":[{"warning_type":"SQL Injection","message":"Possible SQL injection","file":"app/models/user.rb","line":42,"confidence":"High"}]}`
-		reader := strings.NewReader(input)
-
-		report, err := ParseBrakemanJSON(reader)
-		require.NoError(t, err)
-		require.NotNil(t, report)
-		require.Len(t, report.Warnings, 1)
-		require.Equal(t, "SQL Injection", report.Warnings[0].WarningType)
-	})
-
-	t.Run("returns error for invalid JSON", func(t *testing.T) {
-		input := `{invalid json`
-		reader := strings.NewReader(input)
-
-		report, err := ParseBrakemanJSON(reader)
-		require.Error(t, err)
-		require.Nil(t, report)
-	})
-
-	t.Run("handles empty warnings array", func(t *testing.T) {
-		input := `{"warnings":[]}`
-		reader := strings.NewReader(input)
-
-		report, err := ParseBrakemanJSON(reader)
-		require.NoError(t, err)
-		require.NotNil(t, report)
-		require.Len(t, report.Warnings, 0)
-	})
-
-	t.Run("handles missing warnings field", func(t *testing.T) {
-		input := `{}`
-		reader := strings.NewReader(input)
-
-		report, err := ParseBrakemanJSON(reader)
-		require.NoError(t, err)
-		require.NotNil(t, report)
-		require.Len(t, report.Warnings, 0)
 	})
 }
 

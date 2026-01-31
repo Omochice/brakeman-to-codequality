@@ -9,21 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Omochice/brakeman-to-codequality/brakeman"
 	"github.com/Omochice/brakeman-to-codequality/cli"
 )
-
-type BrakemanReport struct {
-	Warnings []BrakemanWarning `json:"warnings"`
-}
-
-type BrakemanWarning struct {
-	WarningType string `json:"warning_type"`
-	Message     string `json:"message"`
-	File        string `json:"file"`
-	Line        int    `json:"line"`
-	Confidence  string `json:"confidence"`
-	Code        string `json:"code,omitempty"`
-}
 
 type CodeQualityViolation struct {
 	Description string   `json:"description"`
@@ -65,7 +53,7 @@ func GenerateFingerprint(file string, line int, warningType, message, code strin
 	return hex.EncodeToString(hash[:])
 }
 
-func ConvertWarnings(warnings []BrakemanWarning) []CodeQualityViolation {
+func ConvertWarnings(warnings []brakeman.Warning) []CodeQualityViolation {
 	violations := make([]CodeQualityViolation, 0, len(warnings))
 
 	for _, warning := range warnings {
@@ -94,21 +82,6 @@ func ConvertWarnings(warnings []BrakemanWarning) []CodeQualityViolation {
 	return violations
 }
 
-func ParseBrakemanJSON(r io.Reader) (*BrakemanReport, error) {
-	var report BrakemanReport
-
-	decoder := json.NewDecoder(r)
-	if err := decoder.Decode(&report); err != nil {
-		return nil, err
-	}
-
-	if report.Warnings == nil {
-		report.Warnings = []BrakemanWarning{}
-	}
-
-	return &report, nil
-}
-
 func WriteCodeQualityJSON(violations []CodeQualityViolation, w io.Writer) error {
 	encoder := json.NewEncoder(w)
 	if err := encoder.Encode(violations); err != nil {
@@ -123,7 +96,7 @@ func handleError(w io.Writer, err error) int {
 }
 
 func command(args []string, inout *cli.ProcInout) int {
-	report, err := ParseBrakemanJSON(inout.Stdin)
+	report, err := brakeman.Parse(inout.Stdin)
 	if err != nil {
 		return handleError(inout.Stderr, err)
 	}
