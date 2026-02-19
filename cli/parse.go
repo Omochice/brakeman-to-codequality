@@ -1,15 +1,22 @@
 package cli
 
 import (
+	"bytes"
+
 	"github.com/jessevdk/go-flags"
 )
 
-func Parse(args *[]string) (*Options, []string, error) {
+func Parse(args []string) (*Options, error) {
 	var opts Options
 	parser := flags.NewParser(&opts, flags.HelpFlag)
-	a, err := parser.ParseArgs(*args)
+	_, err := parser.ParseArgs(args)
 	if err != nil {
-		return nil, nil, err
+		if ferr, ok := err.(*flags.Error); ok && ferr.Type == flags.ErrHelp {
+			var buf bytes.Buffer
+			parser.WriteHelp(&buf)
+			return nil, NewHelpError(buf.String())
+		}
+		return nil, err
 	}
-	return &opts, a, err
+	return &opts, err
 }

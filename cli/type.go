@@ -1,5 +1,5 @@
 package cli
 
 type Options struct {
-	Version bool `short:"v" long:"verbose" description:"Show verbose debug information"`
+	Version bool `short:"v" long:"version" description:"Show application version"`
 }
