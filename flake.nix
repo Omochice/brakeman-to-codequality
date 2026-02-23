@@ -124,6 +124,10 @@
             ghalint run
             zizmor .github/workflows
           '' [ (runAs "check-actions" devPackages.actions) ];
+          # NOTE: package `renovate` 43.4.0 is broken on aarch64, so we stop to include its in devShells.
+          check-renovate-config = pkgs.lib.pipe ''
+            renovate-config-validator --strict
+          '' [ (runAs "check-actions" [ pkgs.renovate ]) ];
         };
         checks = {
           formatting = treefmt.config.build.check self;

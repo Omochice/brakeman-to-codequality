@@ -111,7 +111,7 @@ jobs:
       - uses: ./.github/actions/setup-nix
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - run: nix run nixpkgs#renovate -- renovate-config-validator --strict
+      - run: nix run .#check-renovate-config
   status-check:
     timeout-minutes: 5
     name: Status Check
