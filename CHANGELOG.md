@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.2](https://github.com/Omochice/brakeman-to-codequality/compare/v0.0.1...v0.0.2) (2026-02-23)
+
+
+### Continuous Integration
+
+* fix templating ([#5](https://github.com/Omochice/brakeman-to-codequality/issues/5)) ([4cc31b8](https://github.com/Omochice/brakeman-to-codequality/commit/4cc31b8b4b3639b4cbe9fd05461cc82bbd10fcef))
+
 ## 0.0.1 (2026-02-23)
 
 
