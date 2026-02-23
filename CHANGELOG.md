@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4](https://github.com/Omochice/brakeman-to-codequality/compare/v0.0.3...v0.0.4) (2026-02-23)
+
+
+### Continuous Integration
+
+* run `go test` on ci ([#14](https://github.com/Omochice/brakeman-to-codequality/issues/14)) ([0b0f92d](https://github.com/Omochice/brakeman-to-codequality/commit/0b0f92dc755ab951f18707cf17ee7e17ead1fecf))
+
 ## [0.0.3](https://github.com/Omochice/brakeman-to-codequality/compare/v0.0.2...v0.0.3) (2026-02-23)
 
 
