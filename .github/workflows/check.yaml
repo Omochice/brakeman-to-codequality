@@ -112,6 +112,23 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - run: nix run .#check-renovate-config
+  test-go:
+    timeout-minutes: 5
+    name: Build snapshot
+    needs: path-filter
+    if: needs.path-filter.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-nix
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nix develop --command go test ./...
   status-check:
     timeout-minutes: 5
     name: Status Check
@@ -122,6 +139,7 @@ jobs:
       - check-actions
       - check-format
       - check-renovate-config
+      - test-go
       # keep-sorted end
     permissions: {}
     if: failure() || cancelled()
