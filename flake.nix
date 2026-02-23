@@ -137,6 +137,8 @@
             #keep-sorted start block=yes
             env.CGO_ENABLED = 0;
             ldflags = [
+              "-s"
+              "-w"
               "-X main.version=${version}"
             ];
             meta.description = "A Go command-line tool that converts Brakeman security scan results to GitLab Code Quality format";
