@@ -1,0 +1,106 @@
+name: Code check
+
+on:
+  push: null
+  pull_request:
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  path-filter:
+    timeout-minutes: 5
+    outputs:
+      # keep-sorted start
+      actions: ${{steps.changes.outputs.actions}}
+      go: ${{steps.changes.outputs.go}}
+      # keep-sorted end
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: changes
+        with:
+          filters: |
+            actions:
+              - .github/workflows/*.yaml
+              - flake.nix
+              - flake.lock
+            go:
+              - ./**/*.go
+              - go.mod
+              - go.sum
+              - flake.nix
+              - flake.lock
+  check-actions:
+    needs: path-filter
+    if: needs.path-filter.outputs.actions == 'true'
+    timeout-minutes: 5
+    name: Check github actions files
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-nix
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nix run .#check-actions
+  check-format:
+    timeout-minutes: 5
+    name: Check code format
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-nix
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nix flake check
+  build-snapshot:
+    timeout-minutes: 5
+    name: Build snapshot
+    needs: path-filter
+    if: needs.path-filter.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-nix
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nix develop --command goreleaser build --snapshot --clean
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          path: dist
+          retention-days: 7
+  status-check:
+    timeout-minutes: 5
+    name: Status Check
+    runs-on: ubuntu-latest
+    needs:
+      # keep-sorted start
+      - check-actions
+      - check-format
+      - build-snapshot
+      # keep-sorted end
+    permissions: {}
+    if: failure() || cancelled()
+    steps:
+      - run: exit 1
