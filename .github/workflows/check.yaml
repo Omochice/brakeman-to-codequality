@@ -14,8 +14,8 @@ jobs:
     outputs:
       # keep-sorted start
       actions: ${{steps.changes.outputs.actions}}
-      renovate: ${{steps.changes.outputs.renovate}}
       go: ${{steps.changes.outputs.go}}
+      renovate: ${{steps.changes.outputs.renovate}}
       # keep-sorted end
     runs-on: ubuntu-latest
     permissions:
