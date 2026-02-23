@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3](https://github.com/Omochice/brakeman-to-codequality/compare/v0.0.2...v0.0.3) (2026-02-23)
+
+
+### Continuous Integration
+
+* set value ([#7](https://github.com/Omochice/brakeman-to-codequality/issues/7)) ([81862f7](https://github.com/Omochice/brakeman-to-codequality/commit/81862f775c2488aea1465177594188a8e1830b46))
+
 ## [0.0.2](https://github.com/Omochice/brakeman-to-codequality/compare/v0.0.1...v0.0.2) (2026-02-23)
 
 
