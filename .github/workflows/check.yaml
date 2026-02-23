@@ -14,6 +14,7 @@ jobs:
     outputs:
       # keep-sorted start
       actions: ${{steps.changes.outputs.actions}}
+      renovate: ${{steps.changes.outputs.renovate}}
       go: ${{steps.changes.outputs.go}}
       # keep-sorted end
     runs-on: ubuntu-latest
@@ -37,6 +38,8 @@ jobs:
               - go.sum
               - flake.nix
               - flake.lock
+            renovate:
+              - renovate.json5
   check-actions:
     needs: path-filter
     if: needs.path-filter.outputs.actions == 'true'
@@ -92,6 +95,23 @@ jobs:
         with:
           path: dist
           retention-days: 7
+  check-renovate-config:
+    timeout-minutes: 5
+    name: Check renovate config format
+    needs: path-filter
+    if: needs.path-filter.outputs.renovate == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-nix
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nix run nixpkgs#renovate -- renovate-config-validator --strict
   status-check:
     timeout-minutes: 5
     name: Status Check
@@ -101,6 +121,7 @@ jobs:
       - build-snapshot
       - check-actions
       - check-format
+      - check-renovate-config
       # keep-sorted end
     permissions: {}
     if: failure() || cancelled()
