@@ -70,6 +70,7 @@ Brakeman confidence levels are mapped to GitLab severity levels:
 ### Fingerprint Generation
 
 Each violation receives a unique SHA-256 fingerprint based on:
+
 - File path
 - Line number
 - Warning type

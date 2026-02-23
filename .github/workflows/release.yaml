@@ -37,7 +37,38 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           config-file: .github/release-please-config.json
           manifest-file: .github/release-please-manifest.json
-
+  build-release:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          fetch-tags: true
+      - name: setup nix
+        uses: ./.github/actions/setup-nix
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          nix develop --command goreleaser release --skip=publish --snapshot --clean
+          jq -r '.[] | select(.type == "Checksum") | .path' dist/artifacts.json | xargs -I "{}" cp {} dist/checksums.txt
+      - uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: app-token
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PRIVATE_KEY }}
+          permission-contents: write
+      - run: |
+          gh release upload "${TAG_NAME}" dist/*.{tar.gz,zip} dist/checksums.txt
+          gh release edit "${TAG_NAME}" --draft=false
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
   build-image:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}

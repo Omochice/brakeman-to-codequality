@@ -11,7 +11,7 @@ import (
 	"github.com/Omochice/brakeman-to-codequality/converter"
 )
 
-const version = "0.1.0"
+var version = "develop"
 
 func handleError(w io.Writer, err error) int {
 	fmt.Fprintf(w, "Error: %v\n", err)
