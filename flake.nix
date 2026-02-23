@@ -66,7 +66,8 @@
                 enable = true;
                 indent = 2;
               };
-              golangci-lint.enable = true;
+              gofmt.enable = true;
+              goimports.enable = true;
               keep-sorted.enable = true;
               nixfmt.enable = true;
               taplo = {
