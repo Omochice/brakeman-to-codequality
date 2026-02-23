@@ -1,25 +1,8 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+# Ignore build outputs from performing a nix-build or `nix build` command
+result
+result-*
 
-# Test binary, built with `go test -c`
-*.test
+# Ignore automatically generated direnv output
+.direnv
 
-# Output of the go coverage tool
-*.out
-
-# Go workspace file
-go.work
-
-# Compiled binary
-brakeman-to-codequality
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+dist
