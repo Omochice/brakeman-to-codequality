@@ -79,6 +79,7 @@
                   formatter = {
                     type = "basic";
                     retain_line_breaks_single = true;
+                    scan_folded_as_literal = true;
                   };
                 };
               };
@@ -134,10 +135,6 @@
         packages = {
           default = pkgs.buildGo126Module {
             #keep-sorted start block=yes
-            pname = "brakeman-to-codequality";
-            version = version;
-            src = ./.;
-            vendorHash = "sha256-x0Xzh7SYDE4mSwTl2XFHeZ+CqB6hzzeJcwNXYMEo6q0=";
             env.CGO_ENABLED = 0;
             ldflags = [
               "-X main.version=${version}"
@@ -145,6 +142,10 @@
             meta.description = "A Go command-line tool that converts Brakeman security scan results to GitLab Code Quality format";
             meta.homepage = "https://github.com/Omochice/brakeman-to-codequality";
             meta.license = pkgs.lib.licenses.zlib;
+            pname = "brakeman-to-codequality";
+            src = ./.;
+            vendorHash = "sha256-x0Xzh7SYDE4mSwTl2XFHeZ+CqB6hzzeJcwNXYMEo6q0=";
+            version = version;
             #keep-sorted end
           };
         };
