@@ -55,6 +55,12 @@ jobs:
       - run: |
           nix develop --command goreleaser release --skip=publish --snapshot --clean
           jq -r '.[] | select(.type == "Checksum") | .path' dist/artifacts.json | xargs -I "{}" cp {} dist/checksums.txt
+      - uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: app-token
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PRIVATE_KEY }}
+          permission-contents: write
       - run: |
           gh release upload "${TAG_NAME}" dist/*.{tar.gz,zip} dist/checksums.txt
           gh release edit "${TAG_NAME}" --draft=false
