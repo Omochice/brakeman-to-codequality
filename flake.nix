@@ -43,6 +43,22 @@
         };
         treefmt = treefmt-nix.lib.evalModule pkgs (
           { ... }:
+          let
+            rumdlConfig = (pkgs.formats.toml { }).generate "rumdl.toml" {
+              # keep-sorted start
+              MD004.style = "dash";
+              MD007.indent = 4;
+              MD007.style = "fixed";
+              MD041.enabled = false;
+              MD049.style = "underscore";
+              MD050.style = "asterisk";
+              MD055.style = "leading-and-trailing";
+              MD060.enabled = true;
+              MD060.style = "aligned";
+              global."line-length" = 0;
+              # keep-sorted end
+            };
+          in
           {
             settings.global.excludes = [
               "CHANGELOG.md"
@@ -54,7 +70,7 @@
                 options = [
                   "fmt"
                   "--config"
-                  (toString ./rumdl.toml)
+                  (toString rumdlConfig)
                 ];
                 includes = [ "*.md" ];
               };
@@ -70,9 +86,6 @@
               goimports.enable = true;
               keep-sorted.enable = true;
               nixfmt.enable = true;
-              taplo = {
-                enable = true;
-              };
               yamlfmt = {
                 enable = true;
                 settings = {
