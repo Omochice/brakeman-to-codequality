@@ -47,9 +47,22 @@ brakeman:
   image: ruby:3.2
   before_script:
     - gem install brakeman
-    - go install github.com/Omochice/brakeman-to-codequality@latest
   script:
-    - brakeman -f json | brakeman-to-codequality > codequality.json
+    - brakeman -f json -o brakeman-report.json
+  artifacts:
+    paths:
+      - brakeman-report.json
+    when: always
+
+codequality:
+  stage: test
+  image: ghcr.io/omochice/brakeman-to-codequality:latest
+  needs:
+    - job: brakeman
+      artifacts: true
+  when: always
+  script:
+    - cat brakeman-report.json | brakeman-to-codequality > codequality.json
   artifacts:
     reports:
       codequality: codequality.json
