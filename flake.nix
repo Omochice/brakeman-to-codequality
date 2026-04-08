@@ -149,25 +149,43 @@
           (pkgs.lib.attrsets.mapAttrs (name: buildInputs: pkgs.mkShell { inherit buildInputs; }))
         ];
         formatter = treefmt.config.build.wrapper;
-        packages = {
-          default = pkgs.buildGo126Module {
-            #keep-sorted start block=yes
-            env.CGO_ENABLED = 0;
-            ldflags = [
-              "-s"
-              "-w"
-              "-X main.version=${version}"
-            ];
-            meta.description = "A Go command-line tool that converts Brakeman security scan results to GitLab Code Quality format";
-            meta.homepage = "https://github.com/Omochice/brakeman-to-codequality";
-            meta.license = pkgs.lib.licenses.zlib;
-            pname = "brakeman-to-codequality";
-            src = ./.;
-            vendorHash = "sha256-x0Xzh7SYDE4mSwTl2XFHeZ+CqB6hzzeJcwNXYMEo6q0=";
-            version = version;
-            #keep-sorted end
+        packages =
+          {
+            default = pkgs.buildGo126Module {
+              #keep-sorted start block=yes
+              env.CGO_ENABLED = 0;
+              ldflags = [
+                "-s"
+                "-w"
+                "-X main.version=${version}"
+              ];
+              meta.description = "A Go command-line tool that converts Brakeman security scan results to GitLab Code Quality format";
+              meta.homepage = "https://github.com/Omochice/brakeman-to-codequality";
+              meta.license = pkgs.lib.licenses.zlib;
+              pname = "brakeman-to-codequality";
+              src = ./.;
+              vendorHash = "sha256-x0Xzh7SYDE4mSwTl2XFHeZ+CqB6hzzeJcwNXYMEo6q0=";
+              version = version;
+              #keep-sorted end
+            };
+          }
+          // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+            container = pkgs.dockerTools.buildLayeredImage {
+              name = "ghcr.io/omochice/brakeman-to-codequality";
+              tag = version;
+              contents = [
+                self.packages.${system}.default
+                pkgs.busybox
+              ];
+              config = {
+                Entrypoint = [ "${self.packages.${system}.default}/bin/brakeman-to-codequality" ];
+                Labels = {
+                  "org.opencontainers.image.source" = "https://github.com/Omochice/brakeman-to-codequality";
+                  "org.opencontainers.image.version" = version;
+                };
+              };
+            };
           };
-        };
         # keep-sorted end
       }
     );
