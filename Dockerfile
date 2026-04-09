@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 ARG VERSION=develop
-RUN CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${VERSION}" -o brakeman-to-codequality .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o brakeman-to-codequality .
 
 FROM alpine:3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
 
