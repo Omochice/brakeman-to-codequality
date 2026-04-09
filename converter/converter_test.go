@@ -6,7 +6,6 @@ import (
 
 	"github.com/Omochice/brakeman-to-codequality/brakeman"
 	"github.com/Omochice/brakeman-to-codequality/converter"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSeverity(t *testing.T) {
@@ -80,7 +79,9 @@ func TestSeverity(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := converter.Severity(tt.confidence)
-			require.Equal(t, tt.want, got)
+			if got != tt.want {
+				t.Fatalf("got %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
@@ -89,48 +90,67 @@ func TestFingerprint(t *testing.T) {
 	t.Run("generates consistent fingerprint for same input", func(t *testing.T) {
 		fp1 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "User.where(...)")
 		fp2 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "User.where(...)")
-		require.Equal(t, fp1, fp2)
+		if fp1 != fp2 {
+			t.Fatalf("got %v, want %v", fp1, fp2)
+		}
 	})
 
 	t.Run("generates different fingerprints for different inputs", func(t *testing.T) {
 		fp1 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
 		fp2 := converter.Fingerprint("app/models/user.rb", 43, "SQL Injection", "Possible SQL injection", "")
-		require.NotEqual(t, fp1, fp2)
+		if fp1 == fp2 {
+			t.Fatalf("expected values to differ, but both are %v", fp1)
+		}
 	})
 
 	t.Run("includes code field when present", func(t *testing.T) {
 		fpWithCode := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "User.where(...)")
 		fpWithoutCode := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
-		require.NotEqual(t, fpWithCode, fpWithoutCode)
+		if fpWithCode == fpWithoutCode {
+			t.Fatalf("expected values to differ, but both are %v", fpWithCode)
+		}
 	})
 
 	t.Run("handles empty code field", func(t *testing.T) {
 		fp := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
-		require.NotEmpty(t, fp)
+		if fp == "" {
+			t.Fatalf("expected non-empty string")
+		}
 	})
 
 	t.Run("generates 64-character hex string", func(t *testing.T) {
 		fp := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
-		require.Len(t, fp, 64)
-		require.Regexp(t, regexp.MustCompile("^[0-9a-f]{64}$"), fp)
+		if len(fp) != 64 {
+			t.Fatalf("expected length %d, got %d", 64, len(fp))
+		}
+		re := regexp.MustCompile("^[0-9a-f]{64}$")
+		if !re.MatchString(fp) {
+			t.Fatalf("expected %q to match pattern %v", fp, re)
+		}
 	})
 
 	t.Run("different files produce different fingerprints", func(t *testing.T) {
 		fp1 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
 		fp2 := converter.Fingerprint("app/models/post.rb", 42, "SQL Injection", "Possible SQL injection", "")
-		require.NotEqual(t, fp1, fp2)
+		if fp1 == fp2 {
+			t.Fatalf("expected values to differ, but both are %v", fp1)
+		}
 	})
 
 	t.Run("different warning types produce different fingerprints", func(t *testing.T) {
 		fp1 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
 		fp2 := converter.Fingerprint("app/models/user.rb", 42, "XSS", "Possible SQL injection", "")
-		require.NotEqual(t, fp1, fp2)
+		if fp1 == fp2 {
+			t.Fatalf("expected values to differ, but both are %v", fp1)
+		}
 	})
 
 	t.Run("different messages produce different fingerprints", func(t *testing.T) {
 		fp1 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
 		fp2 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Confirmed SQL injection", "")
-		require.NotEqual(t, fp1, fp2)
+		if fp1 == fp2 {
+			t.Fatalf("expected values to differ, but both are %v", fp1)
+		}
 	})
 }
 
@@ -148,15 +168,29 @@ func TestWarnings(t *testing.T) {
 		}
 
 		violations := converter.Warnings(warnings)
-		require.Len(t, violations, 1)
+		if len(violations) != 1 {
+			t.Fatalf("expected length %d, got %d", 1, len(violations))
+		}
 
 		violation := violations[0]
-		require.Equal(t, "Possible SQL injection", violation.Description)
-		require.Equal(t, "SQL Injection", violation.CheckName)
-		require.Equal(t, "critical", violation.Severity)
-		require.Equal(t, "app/models/user.rb", violation.Location.Path)
-		require.Equal(t, 42, violation.Location.Lines.Begin)
-		require.NotEmpty(t, violation.Fingerprint)
+		if violation.Description != "Possible SQL injection" {
+			t.Fatalf("got %v, want %v", violation.Description, "Possible SQL injection")
+		}
+		if violation.CheckName != "SQL Injection" {
+			t.Fatalf("got %v, want %v", violation.CheckName, "SQL Injection")
+		}
+		if violation.Severity != "critical" {
+			t.Fatalf("got %v, want %v", violation.Severity, "critical")
+		}
+		if violation.Location.Path != "app/models/user.rb" {
+			t.Fatalf("got %v, want %v", violation.Location.Path, "app/models/user.rb")
+		}
+		if violation.Location.Lines.Begin != 42 {
+			t.Fatalf("got %v, want %v", violation.Location.Lines.Begin, 42)
+		}
+		if violation.Fingerprint == "" {
+			t.Fatalf("expected non-empty string")
+		}
 	})
 
 	t.Run("skips warning with missing file", func(t *testing.T) {
@@ -171,7 +205,9 @@ func TestWarnings(t *testing.T) {
 		}
 
 		violations := converter.Warnings(warnings)
-		require.Len(t, violations, 0)
+		if len(violations) != 0 {
+			t.Fatalf("expected length %d, got %d", 0, len(violations))
+		}
 	})
 
 	t.Run("skips warning with missing line", func(t *testing.T) {
@@ -186,7 +222,9 @@ func TestWarnings(t *testing.T) {
 		}
 
 		violations := converter.Warnings(warnings)
-		require.Len(t, violations, 0)
+		if len(violations) != 0 {
+			t.Fatalf("expected length %d, got %d", 0, len(violations))
+		}
 	})
 
 	t.Run("skips warning with missing warning type", func(t *testing.T) {
@@ -201,7 +239,9 @@ func TestWarnings(t *testing.T) {
 		}
 
 		violations := converter.Warnings(warnings)
-		require.Len(t, violations, 0)
+		if len(violations) != 0 {
+			t.Fatalf("expected length %d, got %d", 0, len(violations))
+		}
 	})
 
 	t.Run("skips warning with missing message", func(t *testing.T) {
@@ -216,7 +256,9 @@ func TestWarnings(t *testing.T) {
 		}
 
 		violations := converter.Warnings(warnings)
-		require.Len(t, violations, 0)
+		if len(violations) != 0 {
+			t.Fatalf("expected length %d, got %d", 0, len(violations))
+		}
 	})
 
 	t.Run("removes ./ prefix from file path", func(t *testing.T) {
@@ -231,14 +273,20 @@ func TestWarnings(t *testing.T) {
 		}
 
 		violations := converter.Warnings(warnings)
-		require.Len(t, violations, 1)
-		require.Equal(t, "app/models/user.rb", violations[0].Location.Path)
+		if len(violations) != 1 {
+			t.Fatalf("expected length %d, got %d", 1, len(violations))
+		}
+		if violations[0].Location.Path != "app/models/user.rb" {
+			t.Fatalf("got %v, want %v", violations[0].Location.Path, "app/models/user.rb")
+		}
 	})
 
 	t.Run("handles empty array", func(t *testing.T) {
 		warnings := []brakeman.Warning{}
 		violations := converter.Warnings(warnings)
-		require.Len(t, violations, 0)
+		if len(violations) != 0 {
+			t.Fatalf("expected length %d, got %d", 0, len(violations))
+		}
 	})
 
 	t.Run("processes multiple warnings", func(t *testing.T) {
@@ -260,9 +308,15 @@ func TestWarnings(t *testing.T) {
 		}
 
 		violations := converter.Warnings(warnings)
-		require.Len(t, violations, 2)
-		require.Equal(t, "SQL Injection", violations[0].CheckName)
-		require.Equal(t, "XSS", violations[1].CheckName)
+		if len(violations) != 2 {
+			t.Fatalf("expected length %d, got %d", 2, len(violations))
+		}
+		if violations[0].CheckName != "SQL Injection" {
+			t.Fatalf("got %v, want %v", violations[0].CheckName, "SQL Injection")
+		}
+		if violations[1].CheckName != "XSS" {
+			t.Fatalf("got %v, want %v", violations[1].CheckName, "XSS")
+		}
 	})
 
 	t.Run("skips invalid warnings and processes valid ones", func(t *testing.T) {
@@ -284,7 +338,11 @@ func TestWarnings(t *testing.T) {
 		}
 
 		violations := converter.Warnings(warnings)
-		require.Len(t, violations, 1)
-		require.Equal(t, "SQL Injection", violations[0].CheckName)
+		if len(violations) != 1 {
+			t.Fatalf("expected length %d, got %d", 1, len(violations))
+		}
+		if violations[0].CheckName != "SQL Injection" {
+			t.Fatalf("got %v, want %v", violations[0].CheckName, "SQL Injection")
+		}
 	})
 }
