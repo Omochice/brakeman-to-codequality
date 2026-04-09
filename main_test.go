@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/Omochice/brakeman-to-codequality/cli"
-	"github.com/stretchr/testify/require"
 )
 
 func TestHandleError(t *testing.T) {
@@ -15,9 +14,15 @@ func TestHandleError(t *testing.T) {
 		var buf bytes.Buffer
 		exitCode := handleError(&buf, errors.New("test error"))
 
-		require.Equal(t, 1, exitCode)
-		require.Contains(t, buf.String(), "Error:")
-		require.Contains(t, buf.String(), "test error")
+		if exitCode != 1 {
+			t.Fatalf("got %v, want %v", exitCode, 1)
+		}
+		if !strings.Contains(buf.String(), "Error:") {
+			t.Fatalf("expected %q to contain %q", buf.String(), "Error:")
+		}
+		if !strings.Contains(buf.String(), "test error") {
+			t.Fatalf("expected %q to contain %q", buf.String(), "test error")
+		}
 	})
 }
 
@@ -33,14 +38,26 @@ func TestEndToEnd(t *testing.T) {
 		}
 
 		exitCode := command(nil, inout)
-		require.Equal(t, 0, exitCode)
-		require.Empty(t, stderr.String())
+		if exitCode != 0 {
+			t.Fatalf("got %v, want %v", exitCode, 0)
+		}
+		if stderr.String() != "" {
+			t.Fatalf("expected empty string, got %q", stderr.String())
+		}
 
 		output := stdout.String()
-		require.Contains(t, output, "Possible SQL injection")
-		require.Contains(t, output, "SQL Injection")
-		require.Contains(t, output, "critical")
-		require.Contains(t, output, "app/models/user.rb")
+		if !strings.Contains(output, "Possible SQL injection") {
+			t.Fatalf("expected %q to contain %q", output, "Possible SQL injection")
+		}
+		if !strings.Contains(output, "SQL Injection") {
+			t.Fatalf("expected %q to contain %q", output, "SQL Injection")
+		}
+		if !strings.Contains(output, "critical") {
+			t.Fatalf("expected %q to contain %q", output, "critical")
+		}
+		if !strings.Contains(output, "app/models/user.rb") {
+			t.Fatalf("expected %q to contain %q", output, "app/models/user.rb")
+		}
 	})
 
 	t.Run("handles empty warnings", func(t *testing.T) {
@@ -54,12 +71,20 @@ func TestEndToEnd(t *testing.T) {
 		}
 
 		exitCode := command(nil, inout)
-		require.Equal(t, 0, exitCode)
-		require.Empty(t, stderr.String())
+		if exitCode != 0 {
+			t.Fatalf("got %v, want %v", exitCode, 0)
+		}
+		if stderr.String() != "" {
+			t.Fatalf("expected empty string, got %q", stderr.String())
+		}
 
 		output := stdout.String()
-		require.Contains(t, output, "[")
-		require.Contains(t, output, "]")
+		if !strings.Contains(output, "[") {
+			t.Fatalf("expected %q to contain %q", output, "[")
+		}
+		if !strings.Contains(output, "]") {
+			t.Fatalf("expected %q to contain %q", output, "]")
+		}
 	})
 
 	t.Run("returns non-zero exit code for invalid JSON input", func(t *testing.T) {
@@ -73,7 +98,11 @@ func TestEndToEnd(t *testing.T) {
 		}
 
 		exitCode := command(nil, inout)
-		require.Equal(t, 1, exitCode)
-		require.Contains(t, stderr.String(), "Error:")
+		if exitCode != 1 {
+			t.Fatalf("got %v, want %v", exitCode, 1)
+		}
+		if !strings.Contains(stderr.String(), "Error:") {
+			t.Fatalf("expected %q to contain %q", stderr.String(), "Error:")
+		}
 	})
 }
