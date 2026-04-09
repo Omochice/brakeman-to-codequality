@@ -2,10 +2,10 @@ package codequality_test
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/Omochice/brakeman-to-codequality/codequality"
-	"github.com/stretchr/testify/require"
 )
 
 func TestWrite(t *testing.T) {
@@ -25,13 +25,23 @@ func TestWrite(t *testing.T) {
 
 		var buf bytes.Buffer
 		err := codequality.Write(violations, &buf)
-		require.NoError(t, err)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 
 		output := buf.String()
-		require.Contains(t, output, "Possible SQL injection")
-		require.Contains(t, output, "SQL Injection")
-		require.Contains(t, output, "abc123")
-		require.Contains(t, output, "critical")
+		if !strings.Contains(output, "Possible SQL injection") {
+			t.Fatalf("expected %q to contain %q", output, "Possible SQL injection")
+		}
+		if !strings.Contains(output, "SQL Injection") {
+			t.Fatalf("expected %q to contain %q", output, "SQL Injection")
+		}
+		if !strings.Contains(output, "abc123") {
+			t.Fatalf("expected %q to contain %q", output, "abc123")
+		}
+		if !strings.Contains(output, "critical") {
+			t.Fatalf("expected %q to contain %q", output, "critical")
+		}
 	})
 
 	t.Run("writes empty array", func(t *testing.T) {
@@ -39,11 +49,17 @@ func TestWrite(t *testing.T) {
 
 		var buf bytes.Buffer
 		err := codequality.Write(violations, &buf)
-		require.NoError(t, err)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 
 		output := buf.String()
-		require.Contains(t, output, "[")
-		require.Contains(t, output, "]")
+		if !strings.Contains(output, "[") {
+			t.Fatalf("expected %q to contain %q", output, "[")
+		}
+		if !strings.Contains(output, "]") {
+			t.Fatalf("expected %q to contain %q", output, "]")
+		}
 	})
 
 	t.Run("output has no BOM", func(t *testing.T) {
@@ -51,9 +67,13 @@ func TestWrite(t *testing.T) {
 
 		var buf bytes.Buffer
 		err := codequality.Write(violations, &buf)
-		require.NoError(t, err)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 
 		output := buf.Bytes()
-		require.False(t, bytes.HasPrefix(output, []byte{0xEF, 0xBB, 0xBF}))
+		if bytes.HasPrefix(output, []byte{0xEF, 0xBB, 0xBF}) {
+			t.Fatalf("expected false, got true")
+		}
 	})
 }
