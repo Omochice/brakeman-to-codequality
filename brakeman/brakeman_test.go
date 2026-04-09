@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/Omochice/brakeman-to-codequality/brakeman"
-	"github.com/stretchr/testify/require"
 )
 
 func TestParse(t *testing.T) {
@@ -14,10 +13,18 @@ func TestParse(t *testing.T) {
 		reader := strings.NewReader(input)
 
 		report, err := brakeman.Parse(reader)
-		require.NoError(t, err)
-		require.NotNil(t, report)
-		require.Len(t, report.Warnings, 1)
-		require.Equal(t, "SQL Injection", report.Warnings[0].WarningType)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if report == nil {
+			t.Fatalf("expected non-nil value")
+		}
+		if len(report.Warnings) != 1 {
+			t.Fatalf("expected length %d, got %d", 1, len(report.Warnings))
+		}
+		if report.Warnings[0].WarningType != "SQL Injection" {
+			t.Fatalf("got %v, want %v", report.Warnings[0].WarningType, "SQL Injection")
+		}
 	})
 
 	t.Run("returns error for invalid JSON", func(t *testing.T) {
@@ -25,8 +32,12 @@ func TestParse(t *testing.T) {
 		reader := strings.NewReader(input)
 
 		report, err := brakeman.Parse(reader)
-		require.Error(t, err)
-		require.Nil(t, report)
+		if err == nil {
+			t.Fatalf("expected error, got nil")
+		}
+		if report != nil {
+			t.Fatalf("expected nil, got %v", report)
+		}
 	})
 
 	t.Run("handles empty warnings array", func(t *testing.T) {
@@ -34,9 +45,15 @@ func TestParse(t *testing.T) {
 		reader := strings.NewReader(input)
 
 		report, err := brakeman.Parse(reader)
-		require.NoError(t, err)
-		require.NotNil(t, report)
-		require.Len(t, report.Warnings, 0)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if report == nil {
+			t.Fatalf("expected non-nil value")
+		}
+		if len(report.Warnings) != 0 {
+			t.Fatalf("expected length %d, got %d", 0, len(report.Warnings))
+		}
 	})
 
 	t.Run("handles missing warnings field", func(t *testing.T) {
@@ -44,8 +61,14 @@ func TestParse(t *testing.T) {
 		reader := strings.NewReader(input)
 
 		report, err := brakeman.Parse(reader)
-		require.NoError(t, err)
-		require.NotNil(t, report)
-		require.Len(t, report.Warnings, 0)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if report == nil {
+			t.Fatalf("expected non-nil value")
+		}
+		if len(report.Warnings) != 0 {
+			t.Fatalf("expected length %d, got %d", 0, len(report.Warnings))
+		}
 	})
 }
