@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -102,10 +103,16 @@ func TestEndToEnd(t *testing.T) {
 		if exitCode != 0 {
 			t.Fatalf("got %v, want %v", exitCode, 0)
 		}
+		if stderr.String() != "" {
+			t.Fatalf("expected empty stderr, got %q", stderr.String())
+		}
 
-		output := stdout.String()
-		if !strings.Contains(output, "[") {
-			t.Fatalf("expected %q to contain %q", output, "[")
+		var result []any
+		if err := json.NewDecoder(&stdout).Decode(&result); err != nil {
+			t.Fatalf("failed to decode output as JSON: %v", err)
+		}
+		if len(result) != 0 {
+			t.Fatalf("expected empty array, got %d elements", len(result))
 		}
 	})
 
