@@ -26,16 +26,8 @@ go build
 
 The tool requires exactly one argument: a file path or `-` for stdin.
 
-### Read from File
-
 ```bash
-brakeman -f json -o brakeman-report.json
 brakeman-to-codequality brakeman-report.json > codequality.json
-```
-
-### Read from stdin
-
-```bash
 brakeman -f json | brakeman-to-codequality - > codequality.json
 ```
 
