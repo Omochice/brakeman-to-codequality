@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/Omochice/brakeman-to-codequality/brakeman"
 	"github.com/Omochice/brakeman-to-codequality/cli"
@@ -35,7 +36,19 @@ func command(args []string, inout *cli.ProcInout) int {
 		return 0
 	}
 
-	report, err := brakeman.Parse(inout.Stdin)
+	var reader io.Reader
+	if opts.Source == "-" {
+		reader = inout.Stdin
+	} else {
+		f, err := os.Open(opts.Source)
+		if err != nil {
+			return handleError(inout.Stderr, err)
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	report, err := brakeman.Parse(reader)
 	if err != nil {
 		return handleError(inout.Stderr, err)
 	}
