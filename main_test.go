@@ -31,7 +31,7 @@ func TestHandleError(t *testing.T) {
 
 func TestEndToEnd(t *testing.T) {
 	t.Run("reads from stdin when source is dash", func(t *testing.T) {
-		input := `{"warnings":[{"warning_type":"SQL Injection","message":"Possible SQL injection","file":"app/models/user.rb","line":42,"confidence":"High","code":"User.where(...)"}]}`
+		input := `{"warnings":[{"warning_type":"SQL Injection","message":"Possible SQL injection","file":"app/models/user.rb","line":42,"confidence":"High","code":"User.where(...)","fingerprint":"a21418b38aa77ef73946105fb1c9e3623b7be67a2419b960793871587200cbcc"}]}`
 
 		var stdout, stderr bytes.Buffer
 		inout := &cli.ProcInout{
@@ -64,7 +64,7 @@ func TestEndToEnd(t *testing.T) {
 	})
 
 	t.Run("reads from file when source is a file path", func(t *testing.T) {
-		content := `{"warnings":[{"warning_type":"XSS","message":"Cross-site scripting","file":"app/views/index.erb","line":10,"confidence":"Medium"}]}`
+		content := `{"warnings":[{"warning_type":"XSS","message":"Cross-site scripting","file":"app/views/index.erb","line":10,"confidence":"Medium","fingerprint":"b5cc12e8ba8f9e1a1d98375d1a8b6e7c3f2d4e5a6b7c8d9e0f1a2b3c4d5e6f7a"}]}`
 		dir := t.TempDir()
 		path := filepath.Join(dir, "report.json")
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {

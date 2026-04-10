@@ -1,7 +1,6 @@
 package converter_test
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/Omochice/brakeman-to-codequality/brakeman"
@@ -86,74 +85,6 @@ func TestSeverity(t *testing.T) {
 	}
 }
 
-func TestFingerprint(t *testing.T) {
-	t.Run("generates consistent fingerprint for same input", func(t *testing.T) {
-		fp1 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "User.where(...)")
-		fp2 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "User.where(...)")
-		if fp1 != fp2 {
-			t.Fatalf("got %v, want %v", fp1, fp2)
-		}
-	})
-
-	t.Run("generates different fingerprints for different inputs", func(t *testing.T) {
-		fp1 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
-		fp2 := converter.Fingerprint("app/models/user.rb", 43, "SQL Injection", "Possible SQL injection", "")
-		if fp1 == fp2 {
-			t.Fatalf("expected values to differ, but both are %v", fp1)
-		}
-	})
-
-	t.Run("includes code field when present", func(t *testing.T) {
-		fpWithCode := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "User.where(...)")
-		fpWithoutCode := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
-		if fpWithCode == fpWithoutCode {
-			t.Fatalf("expected values to differ, but both are %v", fpWithCode)
-		}
-	})
-
-	t.Run("handles empty code field", func(t *testing.T) {
-		fp := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
-		if fp == "" {
-			t.Fatalf("expected non-empty string")
-		}
-	})
-
-	t.Run("generates 64-character hex string", func(t *testing.T) {
-		fp := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
-		if len(fp) != 64 {
-			t.Fatalf("expected length %d, got %d", 64, len(fp))
-		}
-		re := regexp.MustCompile("^[0-9a-f]{64}$")
-		if !re.MatchString(fp) {
-			t.Fatalf("expected %q to match pattern %v", fp, re)
-		}
-	})
-
-	t.Run("different files produce different fingerprints", func(t *testing.T) {
-		fp1 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
-		fp2 := converter.Fingerprint("app/models/post.rb", 42, "SQL Injection", "Possible SQL injection", "")
-		if fp1 == fp2 {
-			t.Fatalf("expected values to differ, but both are %v", fp1)
-		}
-	})
-
-	t.Run("different warning types produce different fingerprints", func(t *testing.T) {
-		fp1 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
-		fp2 := converter.Fingerprint("app/models/user.rb", 42, "XSS", "Possible SQL injection", "")
-		if fp1 == fp2 {
-			t.Fatalf("expected values to differ, but both are %v", fp1)
-		}
-	})
-
-	t.Run("different messages produce different fingerprints", func(t *testing.T) {
-		fp1 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Possible SQL injection", "")
-		fp2 := converter.Fingerprint("app/models/user.rb", 42, "SQL Injection", "Confirmed SQL injection", "")
-		if fp1 == fp2 {
-			t.Fatalf("expected values to differ, but both are %v", fp1)
-		}
-	})
-}
-
 func TestWarnings(t *testing.T) {
 	t.Run("converts valid warning correctly", func(t *testing.T) {
 		warnings := []brakeman.Warning{
@@ -164,6 +95,7 @@ func TestWarnings(t *testing.T) {
 				Line:        42,
 				Confidence:  "High",
 				Code:        "User.where(...)",
+				Fingerprint: "a21418b38aa77ef73946105fb1c9e3623b7be67a2419b960793871587200cbcc",
 			},
 		}
 
@@ -188,8 +120,8 @@ func TestWarnings(t *testing.T) {
 		if violation.Location.Lines.Begin != 42 {
 			t.Fatalf("got %v, want %v", violation.Location.Lines.Begin, 42)
 		}
-		if violation.Fingerprint == "" {
-			t.Fatalf("expected non-empty string")
+		if violation.Fingerprint != "a21418b38aa77ef73946105fb1c9e3623b7be67a2419b960793871587200cbcc" {
+			t.Fatalf("got %v, want %v", violation.Fingerprint, "a21418b38aa77ef73946105fb1c9e3623b7be67a2419b960793871587200cbcc")
 		}
 	})
 
@@ -201,6 +133,7 @@ func TestWarnings(t *testing.T) {
 				File:        "",
 				Line:        42,
 				Confidence:  "High",
+				Fingerprint: "abc123",
 			},
 		}
 
@@ -218,6 +151,7 @@ func TestWarnings(t *testing.T) {
 				File:        "app/models/user.rb",
 				Line:        0,
 				Confidence:  "High",
+				Fingerprint: "abc123",
 			},
 		}
 
@@ -235,6 +169,7 @@ func TestWarnings(t *testing.T) {
 				File:        "app/models/user.rb",
 				Line:        42,
 				Confidence:  "High",
+				Fingerprint: "abc123",
 			},
 		}
 
@@ -249,6 +184,24 @@ func TestWarnings(t *testing.T) {
 			{
 				WarningType: "SQL Injection",
 				Message:     "",
+				File:        "app/models/user.rb",
+				Line:        42,
+				Confidence:  "High",
+				Fingerprint: "abc123",
+			},
+		}
+
+		violations := converter.Warnings(warnings)
+		if len(violations) != 0 {
+			t.Fatalf("expected length %d, got %d", 0, len(violations))
+		}
+	})
+
+	t.Run("skips warning with missing fingerprint", func(t *testing.T) {
+		warnings := []brakeman.Warning{
+			{
+				WarningType: "SQL Injection",
+				Message:     "Possible SQL injection",
 				File:        "app/models/user.rb",
 				Line:        42,
 				Confidence:  "High",
@@ -269,6 +222,7 @@ func TestWarnings(t *testing.T) {
 				File:        "./app/models/user.rb",
 				Line:        42,
 				Confidence:  "High",
+				Fingerprint: "abc123",
 			},
 		}
 
@@ -297,6 +251,7 @@ func TestWarnings(t *testing.T) {
 				File:        "app/models/user.rb",
 				Line:        42,
 				Confidence:  "High",
+				Fingerprint: "fp1",
 			},
 			{
 				WarningType: "XSS",
@@ -304,6 +259,7 @@ func TestWarnings(t *testing.T) {
 				File:        "app/views/users/show.html.erb",
 				Line:        10,
 				Confidence:  "Medium",
+				Fingerprint: "fp2",
 			},
 		}
 
@@ -327,6 +283,7 @@ func TestWarnings(t *testing.T) {
 				File:        "app/models/user.rb",
 				Line:        42,
 				Confidence:  "High",
+				Fingerprint: "fp1",
 			},
 			{
 				WarningType: "XSS",
@@ -334,6 +291,7 @@ func TestWarnings(t *testing.T) {
 				File:        "app/views/users/show.html.erb",
 				Line:        10,
 				Confidence:  "Medium",
+				Fingerprint: "fp2",
 			},
 		}
 
