@@ -169,7 +169,8 @@ func TestEndToEnd(t *testing.T) {
 			Stderr: &stderr,
 		}
 
-		exitCode := command([]string{"/nonexistent/file.json"}, inout)
+		missingFile := filepath.Join(t.TempDir(), "file.json")
+		exitCode := command([]string{missingFile}, inout)
 		if exitCode != 1 {
 			t.Fatalf("got %v, want %v", exitCode, 1)
 		}
