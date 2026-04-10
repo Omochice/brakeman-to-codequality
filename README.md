@@ -4,7 +4,7 @@ A Go command-line tool that converts [Brakeman](https://brakemanscanner.org/) se
 
 ## Overview
 
-This tool reads Brakeman JSON output from standard input and outputs GitLab Code Quality JSON format to standard output, making it easy to integrate Brakeman security scans into GitLab CI/CD pipelines.
+This tool reads Brakeman JSON output from a file or stdin and outputs GitLab Code Quality JSON format to standard output, making it easy to integrate Brakeman security scans into GitLab CI/CD pipelines.
 
 ## Installation
 
@@ -24,17 +24,19 @@ go build
 
 ## Usage
 
-### Basic Usage
+The tool requires exactly one argument: a file path or `-` for stdin.
 
-```bash
-brakeman -f json | brakeman-to-codequality > codequality.json
-```
-
-### With File Input/Output
+### Read from File
 
 ```bash
 brakeman -f json -o brakeman-report.json
-cat brakeman-report.json | brakeman-to-codequality > codequality.json
+brakeman-to-codequality brakeman-report.json > codequality.json
+```
+
+### Read from stdin
+
+```bash
+brakeman -f json | brakeman-to-codequality - > codequality.json
 ```
 
 ## CI/CD Integration
@@ -62,7 +64,7 @@ codequality:
       artifacts: true
   when: always
   script:
-    - cat brakeman-report.json | brakeman-to-codequality > codequality.json
+    - brakeman-to-codequality brakeman-report.json > codequality.json
   artifacts:
     reports:
       codequality: codequality.json
