@@ -16,6 +16,7 @@ type Warning struct {
 	Line        int    `json:"line"`
 	Confidence  string `json:"confidence"`
 	Code        string `json:"code,omitempty"`
+	Fingerprint string `json:"fingerprint"`
 }
 
 // Parse decodes a Brakeman JSON report from r.
