@@ -9,7 +9,7 @@ import (
 
 func TestParse(t *testing.T) {
 	t.Run("parses valid JSON", func(t *testing.T) {
-		input := `{"warnings":[{"warning_type":"SQL Injection","message":"Possible SQL injection","file":"app/models/user.rb","line":42,"confidence":"High"}]}`
+		input := `{"warnings":[{"warning_type":"SQL Injection","message":"Possible SQL injection","file":"app/models/user.rb","line":42,"confidence":"High","fingerprint":"abc123"}]}`
 		reader := strings.NewReader(input)
 
 		report, err := brakeman.Parse(reader)
@@ -24,6 +24,9 @@ func TestParse(t *testing.T) {
 		}
 		if report.Warnings[0].WarningType != "SQL Injection" {
 			t.Fatalf("got %v, want %v", report.Warnings[0].WarningType, "SQL Injection")
+		}
+		if report.Warnings[0].Fingerprint != "abc123" {
+			t.Fatalf("got %v, want %v", report.Warnings[0].Fingerprint, "abc123")
 		}
 	})
 

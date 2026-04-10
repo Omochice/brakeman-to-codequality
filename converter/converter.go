@@ -1,9 +1,6 @@
 package converter
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"strconv"
 	"strings"
 
 	"github.com/Omochice/brakeman-to-codequality/brakeman"
@@ -24,24 +21,13 @@ func Severity(confidence string) string {
 	}
 }
 
-// Fingerprint generates a deterministic SHA-256 hex digest for a warning.
-func Fingerprint(file string, line int, warningType, message, code string) string {
-	input := file + ":" + strconv.Itoa(line) + ":" + warningType + ":" + message
-	if code != "" {
-		input += ":" + code
-	}
-
-	hash := sha256.Sum256([]byte(input))
-	return hex.EncodeToString(hash[:])
-}
-
 // Warnings converts Brakeman warnings into CodeQuality violations.
-// Warnings that lack a file, line, warning type, or message are skipped.
+// Warnings that lack a file, line, warning type, message, or fingerprint are skipped.
 func Warnings(warnings []brakeman.Warning) []codequality.Violation {
 	violations := make([]codequality.Violation, 0, len(warnings))
 
 	for _, warning := range warnings {
-		if warning.File == "" || warning.Line == 0 || warning.WarningType == "" || warning.Message == "" {
+		if warning.File == "" || warning.Line == 0 || warning.WarningType == "" || warning.Message == "" || warning.Fingerprint == "" {
 			continue
 		}
 
@@ -50,7 +36,7 @@ func Warnings(warnings []brakeman.Warning) []codequality.Violation {
 		violation := codequality.Violation{
 			Description: warning.Message,
 			CheckName:   warning.WarningType,
-			Fingerprint: Fingerprint(warning.File, warning.Line, warning.WarningType, warning.Message, warning.Code),
+			Fingerprint: warning.Fingerprint,
 			Severity:    Severity(warning.Confidence),
 			Location: codequality.Location{
 				Path: path,
