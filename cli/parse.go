@@ -10,6 +10,7 @@ import (
 func Parse(args []string) (*Options, error) {
 	var opts Options
 	parser := flags.NewParser(&opts, flags.HelpFlag)
+	parser.Usage = "[OPTIONS] <file path|->"
 	remaining, err := parser.ParseArgs(args)
 	if err != nil {
 		if ferr, ok := err.(*flags.Error); ok && ferr.Type == flags.ErrHelp {
