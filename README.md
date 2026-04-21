@@ -4,17 +4,23 @@ A Go command-line tool that converts [Brakeman](https://brakemanscanner.org/) se
 
 ## Overview
 
-This tool reads Brakeman JSON output from a file or stdin and outputs GitLab Code Quality JSON format to standard output, making it easy to integrate Brakeman security scans into GitLab CI/CD pipelines.
+This tool reads Brakeman JSON output from a file or stdin and outputs GitLab Code Quality JSON format to stdout, making it easy to integrate Brakeman security scans into GitLab CI/CD pipelines.
 
 ## Installation
 
-### From Source
+### Go install
 
 ```bash
 go install github.com/Omochice/brakeman-to-codequality@latest
 ```
 
-### Build Locally
+### Docker
+
+```bash
+docker pull ghcr.io/omochice/brakeman-to-codequality:latest
+```
+
+### Build from source
 
 ```bash
 git clone https://github.com/Omochice/brakeman-to-codequality.git
@@ -27,13 +33,31 @@ go build
 The tool requires exactly one argument: a file path or `-` for stdin.
 
 ```bash
+# From a file
 brakeman-to-codequality brakeman-report.json > codequality.json
+
+# From stdin
 brakeman -f json | brakeman-to-codequality - > codequality.json
 ```
 
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `-v`, `--version` | Show application version |
+
+### Exit codes
+
+| Code | Description |
+|------|-------------|
+| `0` | Success |
+| `1` | Error (invalid JSON, I/O error, etc.) |
+
 ## CI/CD Integration
 
-### GitLab CI Example
+### GitLab CI example
+
+The following example runs Brakeman and converts its output to GitLab Code Quality format in a single pipeline.
 
 ```yaml
 brakeman:
@@ -64,38 +88,33 @@ codequality:
 
 ## Format Conversion Details
 
-### Severity Mapping
+### Severity mapping
 
-Brakeman confidence levels are mapped to GitLab severity levels:
+Brakeman confidence levels are mapped to GitLab Code Quality severity levels as follows.
 
-- **High** → `critical`
-- **Medium** → `major`
-- **Weak** → `minor`
-- **Low** → `minor`
-- Unknown → `info`
+| Brakeman confidence | GitLab severity |
+|---------------------|-----------------|
+| High | `critical` |
+| Medium | `major` |
+| Weak | `minor` |
+| Low | `minor` |
+| (unknown) | `info` |
 
-### Fingerprint Generation
+### Fingerprint
 
-Each violation receives a unique SHA-256 fingerprint based on:
+Each violation's fingerprint is taken directly from Brakeman's output. This ensures GitLab can accurately track warnings across scans.
 
-- File path
-- Line number
-- Warning type
-- Message
-- Code snippet (if available)
+### Skipped warnings
 
-This ensures GitLab can accurately track warnings across scans.
+Warnings that lack any of the following required fields are silently skipped.
 
-## Exit Codes
+- `file`
+- `line`
+- `warning_type`
+- `message`
+- `fingerprint`
 
-- `0`: Success
-- `1`: Error (invalid JSON, I/O error, etc.)
-
-## Error Handling
-
-- Invalid or missing required fields in Brakeman warnings are skipped
-- Error messages are written to standard error
-- Empty warning arrays produce valid empty GitLab Code Quality output
+Error messages are written to stderr.
 
 ## Requirements
 
@@ -107,4 +126,4 @@ This ensures GitLab can accurately track warnings across scans.
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or pull request.
+Contributions are welcome. Please open an issue or pull request.
