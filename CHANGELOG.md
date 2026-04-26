@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.0](https://github.com/Omochice/brakeman-to-codequality/compare/v0.0.4...v1.0.0) (2026-04-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* warnings without a fingerprint field are now skipped.
+* require positional argument for input source ([#61](https://github.com/Omochice/brakeman-to-codequality/issues/61))
+
+### Features
+
+* require positional argument for input source ([#61](https://github.com/Omochice/brakeman-to-codequality/issues/61)) ([160b7c0](https://github.com/Omochice/brakeman-to-codequality/commit/160b7c01600439fe396b59c6073f0219949ef403))
+* use Brakeman's built-in fingerprint for Code Quality report ([#63](https://github.com/Omochice/brakeman-to-codequality/issues/63)) ([17e2337](https://github.com/Omochice/brakeman-to-codequality/commit/17e23372a569eec99ce7aa9da8094b57423023fd))
+
 ## [0.0.4](https://github.com/Omochice/brakeman-to-codequality/compare/v0.0.3...v0.0.4) (2026-02-23)
 
 
